@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>AgroPet — Teste da API</title>
+<style>
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 30px auto; padding: 0 20px; color: #3f2d24; }
+    h1 { color: #6e4b3a; }
+    button { background: #5a9be0; color: #fff; border: none; border-radius: 10px; padding: 12px 22px; font-size: 1rem; cursor: pointer; }
+    li { padding: 6px 0; border-bottom: 1px solid #eee; list-style: none; }
+    .ok { color: #2e8b57; } .erro { color: #d9534f; }
+    small { color: #8a7666; }
+    #resumo { font-weight: 600; margin: 16px 0; }
+</style>
+</head>
+<body>
+<h1>🐾 Teste da API da AgroPet</h1>
+<p>Este teste usa o banco de verdade. Ele cria um pedido e um agendamento de teste para a Maria e depois cancela os dois.</p>
+<button id="rodar">Rodar todos os testes</button>
+<p id="resumo"></p>
+<ul id="lista"></ul>
+
+<script>
+const lista = document.getElementById('lista');
+let passou = 0, falhou = 0;
+
+async function api(metodo, caminho, corpo, token) {
+    const r = await fetch('/api' + caminho, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+        body: corpo ? JSON.stringify(corpo) : undefined,
+    });
+    const dados = await r.json().catch(() => null);
+    return { status: r.status, dados };
+}
+
+function linha(ok, texto, detalhe) {
+    ok ? passou++ : falhou++;
+    lista.insertAdjacentHTML('beforeend', `<li class="${ok ? 'ok' : 'erro'}">${ok ? '✓' : '✗'} ${texto} <small>${detalhe || ''}</small></li>`);
+}
+
+async function teste(texto, fn) {
+    try { const d = await fn(); linha(true, texto, d); }
+    catch (e) { linha(false, texto, e.message); }
+}
+const conferir = (cond, msg) => { if (!cond) throw new Error(msg); };
+
+function proximoDiaUtil(dias) {
+    const d = new Date(); d.setDate(d.getDate() + dias);
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+}
+
+const botao = document.getElementById('rodar');
+botao.onclick = async () => {
+    if (botao.disabled) return;
+    botao.disabled = true; botao.textContent = 'Rodando...';
+    lista.innerHTML = ''; passou = 0; falhou = 0;
+    let tokenMaria, tokenAdmin, pedidoId, agendaId;
+
+    await teste('Lista de animais do menu', async () => {
+        const r = await api('GET', '/animais'); conferir(r.status === 200 && r.dados.length >= 10, 'esperava 10 animais');
+        return `${r.dados.length} animais`;
+    });
+    await teste('Produtos de gatos', async () => {
+        const r = await api('GET', '/produtos?animal=gatos'); conferir(r.status === 200 && r.dados.length > 0, 'sem produtos');
+        return `${r.dados.length} produtos`;
+    });
+    await teste('Filtro por categoria (Bovinos · Cercas e Cochos)', async () => {
+        const r = await api('GET', '/produtos?animal=bovinos&categoria=' + encodeURIComponent('Cercas e Cochos')); conferir(r.dados.length === 3, 'esperava 3');
+        return r.dados.map(p => p.nome).join(', ');
+    });
+    await teste('Busca por "sal"', async () => {
+        const r = await api('GET', '/produtos?busca=sal'); conferir(r.dados.length > 0, 'nada encontrado');
+        return `${r.dados.length} resultados`;
+    });
+    await teste('Login com senha errada é recusado', async () => {
+        const r = await api('POST', '/login', { login: 'maria@email.com', senha: 'errada' }); conferir(r.status === 401, 'deveria dar 401');
+        return r.dados.erro;
+    });
+    await teste('Login da Maria', async () => {
+        const r = await api('POST', '/login', { login: 'maria@email.com', senha: '123' }); conferir(r.status === 200 && r.dados.token, 'sem token');
+        conferir(!('senhaHash' in r.dados.usuario), 'a senha não pode vir na resposta');
+        tokenMaria = r.dados.token; return r.dados.usuario.nome;
+    });
+    await teste('Dados da Maria (/eu) com pets e assinatura', async () => {
+        const r = await api('GET', '/eu', null, tokenMaria); conferir(r.dados.pets.length === 2 && r.dados.assinatura.plano === 'premium', 'dados incompletos');
+        return `${r.dados.pets.map(p => p.nome).join(' e ')} · plano ${r.dados.assinatura.planoInfo.nome}`;
+    });
+    await teste('Rota protegida sem login dá 401', async () => {
+        const r = await api('GET', '/pedidos'); conferir(r.status === 401, 'deveria dar 401'); return r.dados.erro;
+    });
+    await teste('Cálculo do carrinho com desconto Premium', async () => {
+        const prod = (await api('GET', '/produtos?busca=' + encodeURIComponent('Ração Premium Cães'))).dados[0];
+        const r = await api('POST', '/carrinho', { itens: [{ produtoId: prod.id, qtd: 1 }] }, tokenMaria);
+        conferir(r.dados.desconto > 0 && r.dados.frete === 0, 'desconto/frete errado');
+        return `subtotal ${r.dados.subtotal} − desconto ${r.dados.desconto} = ${r.dados.total}`;
+    });
+    await teste('Criar pedido (baixa o estoque)', async () => {
+        const prod = (await api('GET', '/produtos?busca=Bolinha')).dados[0];
+        const r = await api('POST', '/pedidos', { itens: [{ produtoId: prod.id, qtd: 2 }], pagamento: 'Pix',
+            endereco: { rua: 'Rua Teste', numero: '1', bairro: 'Centro', cidade: 'Santo Ângelo', cep: '98800-000' } }, tokenMaria);
+        conferir(r.status === 201, r.dados && r.dados.erro);
+        pedidoId = r.dados.id;
+        const depois = (await api('GET', '/produtos/' + prod.id)).dados;
+        conferir(depois.estoque === prod.estoque - 2, 'estoque não baixou'); return `pedido #${pedidoId} · total ${r.dados.total} · estoque ${prod.estoque} → ${depois.estoque}`;
+    });
+    await teste('Serviços do Banho e Tosa', async () => {
+        const r = await api('GET', '/servicos'); conferir(r.dados.servicos.length === 3 && r.dados.adicionais.length === 4, 'faltam serviços');
+        return r.dados.servicos.map(s => s.nome).join(', ');
+    });
+    const dia = proximoDiaUtil(5);
+    await teste('Horários livres do dia', async () => {
+        const r = await api('GET', '/horarios?data=' + dia); conferir(!r.dados.fechado && r.dados.livres.length > 0, 'sem horários');
+        return `${dia}: ${r.dados.livres.join(', ')}`;
+    });
+    await teste('Agendar banho do Thor', async () => {
+        const eu = (await api('GET', '/eu', null, tokenMaria)).dados;
+        const livres = (await api('GET', '/horarios?data=' + dia)).dados.livres;
+        const r = await api('POST', '/agendamentos', { petId: eu.pets[0].id, servicoId: 'completo', adicionais: ['unhas'], data: dia, hora: livres[0] }, tokenMaria);
+        conferir(r.status === 201, r.dados && r.dados.erro);
+        agendaId = r.dados.id; return `${r.dados.petNome} · ${r.dados.servicoNome} · ${r.dados.hora} · R$ ${r.dados.valor}`;
+    });
+    await teste('Mesmo horário não pode ser agendado duas vezes', async () => {
+        const eu = (await api('GET', '/eu', null, tokenMaria)).dados;
+        const ag = (await api('GET', '/agendamentos', null, tokenMaria)).dados.find(a => a.id === agendaId);
+        const r = await api('POST', '/agendamentos', { petId: eu.pets[1].id, servicoId: 'banho', adicionais: [], data: ag.data, hora: ag.hora }, tokenMaria);
+        conferir(r.status === 409, 'deveria recusar'); return r.dados.erro;
+    });
+    await teste('Cliente cancela o próprio agendamento', async () => {
+        const r = await api('PATCH', '/agendamentos/' + agendaId, { status: 'Cancelado' }, tokenMaria); conferir(r.dados.status === 'Cancelado', 'não cancelou');
+        return 'cancelado';
+    });
+    await teste('Cliente não acessa o painel do admin', async () => {
+        const r = await api('GET', '/admin/painel', null, tokenMaria); conferir(r.status === 403, 'deveria dar 403'); return r.dados.erro;
+    });
+    await teste('Login do admin', async () => {
+        const r = await api('POST', '/login', { login: 'admin', senha: '123' }); conferir(r.dados.usuario.admin, 'não é admin');
+        tokenAdmin = r.dados.token; return 'admin ok';
+    });
+    await teste('Painel do admin', async () => {
+        const r = await api('GET', '/admin/painel', null, tokenAdmin); conferir(r.status === 200, 'erro no painel');
+        return `faturamento R$ ${r.dados.faturamento} · ${r.dados.pedidos} pedidos · ${r.dados.assinantes} assinante(s)`;
+    });
+    await teste('Admin cancela o pedido de teste (estoque volta)', async () => {
+        const antes = (await api('GET', '/produtos?busca=Bolinha')).dados[0];
+        const r = await api('PATCH', '/pedidos/' + pedidoId, { status: 'Cancelado' }, tokenAdmin); conferir(r.dados.status === 'Cancelado', 'não cancelou');
+        const depois = (await api('GET', '/produtos/' + antes.id)).dados;
+        conferir(depois.estoque === antes.estoque + 2, 'estoque não voltou');
+        return `estoque ${antes.estoque} → ${depois.estoque}`;
+    });
+    await teste('Configurações do site', async () => {
+        const r = await api('GET', '/config'); conferir(r.dados.titulo && r.dados.planos.premium, 'sem config'); return r.dados.titulo;
+    });
+    await api('POST', '/logout', null, tokenMaria);
+    await api('POST', '/logout', null, tokenAdmin);
+
+    document.getElementById('resumo').innerHTML = falhou
+        ? `<span class="erro">${falhou} teste(s) falharam</span> · ${passou} passaram — mande um print para ajustar`
+        : `<span class="ok">Todos os ${passou} testes passaram! 🎉</span>`;
+    botao.disabled = false; botao.textContent = 'Rodar todos os testes';
+};
+</script>
+</body>
+</html>

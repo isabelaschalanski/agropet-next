@@ -1,0 +1,197 @@
+// Banco de dados da AgroPet (Prisma + SQLite)
+// Depois de mudar este arquivo, rode:  npx prisma migrate dev --name descricao-da-mudanca
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Contas ----------
+
+model Usuario {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  email        String        @unique // o admin entra com "admin"
+  senhaHash    String
+  telefone     String        @default("")
+  admin        Boolean       @default(false)
+  criadoEm     DateTime      @default(now())
+  pets         Pet[]
+  pedidos      Pedido[]
+  agendamentos Agendamento[]
+  assinatura   Assinatura?
+  sessoes      Sessao[]
+}
+
+model Sessao {
+  token     String   @id
+  usuarioId Int
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadoEm  DateTime @default(now())
+}
+
+model Pet {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  tipo         String // Cachorro, Gato, Pássaro, Peixe, Roedor, Outro
+  porte        String // Pequeno, Médio, Grande
+  raca         String        @default("")
+  sexo         String        @default("")
+  nascimento   String        @default("") // AAAA-MM-DD
+  donoId       Int
+  dono         Usuario       @relation(fields: [donoId], references: [id], onDelete: Cascade)
+  agendamentos Agendamento[]
+}
+
+// ---------- Loja ----------
+
+model Animal {
+  id         String      @id // cachorro = "caes", gato = "gatos"...
+  nome       String
+  curto      String? // nome curto no menu (ex.: "Aves")
+  icone      String
+  cor        String
+  agro       Boolean     @default(false)
+  outro      Boolean     @default(false) // aparece em "Outros Pets"
+  imagem     String      @default("")
+  ordem      Int         @default(0)
+  categorias Categoria[]
+  produtos   Produto[]
+}
+
+model Categoria {
+  id       Int       @id @default(autoincrement())
+  nome     String
+  itens    String    @default("") // subitens do menu, separados por "|"
+  ordem    Int       @default(0)
+  animalId String
+  animal   Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  produtos Produto[]
+
+  @@unique([animalId, nome])
+}
+
+model Produto {
+  id              Int              @id @default(autoincrement())
+  nome            String
+  descricao       String           @default("")
+  preco           Float
+  estoque         Int              @default(0)
+  icone           String           @default("🐾")
+  cor             String           @default("amarelo")
+  selo            String           @default("") // Oferta, Novo, Mais vendido
+  imagem          String           @default("")
+  ativo           Boolean          @default(true)
+  animalId        String
+  animal          Animal           @relation(fields: [animalId], references: [id])
+  categoriaId     Int
+  categoria       Categoria        @relation(fields: [categoriaId], references: [id])
+  criadoEm        DateTime         @default(now())
+  itensPedido     ItemPedido[]
+  itensAssinatura ItemAssinatura[]
+}
+
+model Pedido {
+  id        Int          @id @default(autoincrement())
+  clienteId Int
+  cliente   Usuario      @relation(fields: [clienteId], references: [id])
+  data      DateTime     @default(now())
+  subtotal  Float
+  desconto  Float        @default(0)
+  frete     Float        @default(0)
+  total     Float
+  pagamento String
+  endereco  String
+  status    String       @default("Recebido") // Recebido, Em separação, Enviado, Entregue, Cancelado
+  itens     ItemPedido[]
+}
+
+model ItemPedido {
+  id        Int      @id @default(autoincrement())
+  pedidoId  Int
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produtoId Int?
+  produto   Produto? @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+  nome      String // guarda o nome e o preço do dia da compra
+  preco     Float
+  qtd       Int
+}
+
+// ---------- Clube AgroPet ----------
+
+model Assinatura {
+  id         Int              @id @default(autoincrement())
+  clienteId  Int              @unique
+  cliente    Usuario          @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  plano      String // basico, premium
+  diaEntrega Int              @default(0) // 0 = sem agendamento
+  pagamento  String           @default("Cartão de crédito")
+  ativa      Boolean          @default(true)
+  desde      DateTime         @default(now())
+  itens      ItemAssinatura[]
+}
+
+model ItemAssinatura {
+  id           Int        @id @default(autoincrement())
+  assinaturaId Int
+  assinatura   Assinatura @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+  produtoId    Int
+  produto      Produto    @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  qtd          Int        @default(1)
+}
+
+// ---------- Banho e Tosa ----------
+
+model Servico {
+  id           String        @id // banho, tosa, completo
+  nome         String
+  descricao    String
+  preco        Float
+  icone        String
+  agendamentos Agendamento[]
+}
+
+model Adicional {
+  id        String @id // hidratacao, unhas...
+  nome      String
+  descricao String
+  preco     Float
+  icone     String
+}
+
+model Agendamento {
+  id         Int      @id @default(autoincrement())
+  clienteId  Int
+  cliente    Usuario  @relation(fields: [clienteId], references: [id])
+  petId      Int?
+  pet        Pet?     @relation(fields: [petId], references: [id], onDelete: SetNull)
+  petNome    String
+  especie    String
+  porte      String
+  servicoId  String
+  servico    Servico  @relation(fields: [servicoId], references: [id])
+  adicionais String   @default("") // ids separados por ","
+  data       String // AAAA-MM-DD
+  hora       String // 08:00
+  valor      Float
+  gratis     Boolean  @default(false)
+  status     String   @default("Agendado") // Agendado, Concluído, Cancelado
+  criadoEm   DateTime @default(now())
+}
+
+// ---------- Configurações do site (uma linha só) ----------
+
+model ConfiguracaoSite {
+  id               Int    @id @default(1)
+  pilula           String
+  titulo           String
+  texto            String
+  botao            String
+  frete            Float
+  freteGratisAcima Float
+  imgSlides        String @default("") // JSON com as 3 imagens dos banners (vazio = imagens padrão)
+}

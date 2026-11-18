@@ -1,69 +1,64 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Script from 'next/script';
 
+// Estrutura fixa do site (topo, menu e rodapé).
+// O conteúdo de cada página é montado pelo arquivo public/app.js dentro do <main id="app">.
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.js</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    return (
+        <>
+            <header className="topo">
+                <div className="container topo-linha">
+                    <a href="#inicio" data-ir="" className="logo">AgroPet</a>
+                    <div className="busca">
+                        <span>🔍</span>
+                        <input id="busca" type="text" placeholder="O que seu pet precisa hoje?" autoComplete="off" />
+                    </div>
+                    <div className="topo-acoes">
+                        <div id="contaMenu"></div>
+                        <a href="#carrinho" data-ir="carrinho" className="btn btn-azul">
+                            🛒 <span className="btn-entrar-txt">Carrinho</span> <span className="contador" id="contador">0</span>
+                        </a>
+                        <span id="sairTopo"></span>
+                        <button className="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+                    </div>
+                </div>
+                <nav className="barra" id="barra">
+                    <ul className="container categorias" id="categorias"></ul>
+                </nav>
+            </header>
+
+            <main id="app"></main>
+
+            <footer className="rodape">
+                <div className="container rodape-grade">
+                    <div>
+                        <span className="logo">AgroPet</span>
+                        <p style={{ marginTop: 8 }}>Pet shop online com carinho de verdade.<br />Santo Ângelo – RS</p>
+                    </div>
+                    <div>
+                        <h4>Loja</h4>
+                        <a href="#inicio" data-ir="">Produtos</a>
+                        <a href="#clube" data-ir="clube">Clube AgroPet</a>
+                        <a href="#banho-e-tosa" data-ir="banho-e-tosa">Banho e Tosa</a>
+                    </div>
+                    <div>
+                        <h4>Minha conta</h4>
+                        <a href="#conta" data-ir="conta">Meus pedidos</a>
+                        <a href="#carrinho" data-ir="carrinho">Carrinho</a>
+                        <a href="#entrar" data-ir="entrar">Entrar / Cadastrar</a>
+                    </div>
+                    <div>
+                        <h4>Contato</h4>
+                        <p>(55) 3312-0000</p>
+                        <p>contato@agropet.com.br</p>
+                    </div>
+                </div>
+                <p className="copy">© AgroPet — Projeto acadêmico · Ciência da Computação URI</p>
+            </footer>
+
+            <div id="modal"></div>
+            <div className="aviso" id="aviso"></div>
+
+            <Script src="/app.js" strategy="afterInteractive" />
+        </>
+    );
 }

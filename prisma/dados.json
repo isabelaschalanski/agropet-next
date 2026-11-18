@@ -1,0 +1,1558 @@
+{
+ "config": {
+  "pilula": "Novidade da semana",
+  "titulo": "Carinho de verdade para o seu melhor amigo",
+  "texto": "Do pet ao campo: rações, brinquedos, produtos agropecuários e banho & tosa com entrega rápida e aquele cuidado que só a AgroPet tem.",
+  "botao": "Ver ofertas",
+  "frete": 14.9,
+  "freteGratisAcima": 199
+ },
+ "animais": [
+  {
+   "id": "caes",
+   "nome": "Cães",
+   "curto": null,
+   "icone": "🐶",
+   "cor": "amarelo",
+   "agro": false,
+   "outro": false,
+   "ordem": 0,
+   "categorias": [
+    {
+     "nome": "Ração",
+     "itens": "Ração Seca|Ração Úmida|Ração Natural|Ração para Filhotes",
+     "ordem": 0
+    },
+    {
+     "nome": "Petiscos e Ossos",
+     "itens": "Bifinhos|Biscoitos|Ossos e Mordedores",
+     "ordem": 1
+    },
+    {
+     "nome": "Farmácia",
+     "itens": "Antipulgas e Carrapatos|Vermífugos|Vitaminas",
+     "ordem": 2
+    },
+    {
+     "nome": "Brinquedos",
+     "itens": "Bolinhas|Pelúcias|Cordas",
+     "ordem": 3
+    },
+    {
+     "nome": "Coleiras e Guias",
+     "itens": "Coleiras|Guias|Peitorais",
+     "ordem": 4
+    },
+    {
+     "nome": "Higiene e Beleza",
+     "itens": "Shampoos|Tapetes Higiênicos|Escovas",
+     "ordem": 5
+    },
+    {
+     "nome": "Camas e Casinhas",
+     "itens": "Camas|Casinhas|Cobertores",
+     "ordem": 6
+    }
+   ]
+  },
+  {
+   "id": "gatos",
+   "nome": "Gatos",
+   "curto": null,
+   "icone": "🐱",
+   "cor": "azul",
+   "agro": false,
+   "outro": false,
+   "ordem": 1,
+   "categorias": [
+    {
+     "nome": "Ração",
+     "itens": "Ração Seca|Sachês e Patês|Gatos Castrados",
+     "ordem": 0
+    },
+    {
+     "nome": "Areia e Higiene",
+     "itens": "Areia Sanitária|Caixas de Areia|Pás",
+     "ordem": 1
+    },
+    {
+     "nome": "Farmácia",
+     "itens": "Antipulgas|Vermífugos",
+     "ordem": 2
+    },
+    {
+     "nome": "Arranhadores e Brinquedos",
+     "itens": "Arranhadores|Varinhas|Bolinhas",
+     "ordem": 3
+    },
+    {
+     "nome": "Camas e Tocas",
+     "itens": "Camas|Tocas",
+     "ordem": 4
+    }
+   ]
+  },
+  {
+   "id": "passaros",
+   "nome": "Pássaros",
+   "curto": null,
+   "icone": "🐦",
+   "cor": "rosa",
+   "agro": false,
+   "outro": true,
+   "ordem": 2,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Alpiste|Mistura de Sementes|Farinhada",
+     "ordem": 0
+    },
+    {
+     "nome": "Gaiolas e Viveiros",
+     "itens": "Gaiolas|Poleiros|Ninhos",
+     "ordem": 1
+    },
+    {
+     "nome": "Comedouros e Bebedouros",
+     "itens": "Comedouros|Bebedouros",
+     "ordem": 2
+    },
+    {
+     "nome": "Saúde",
+     "itens": "Vitaminas",
+     "ordem": 3
+    }
+   ]
+  },
+  {
+   "id": "peixes",
+   "nome": "Peixes",
+   "curto": null,
+   "icone": "🐟",
+   "cor": "verde",
+   "agro": false,
+   "outro": true,
+   "ordem": 3,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Ração em Flocos|Ração Granulada",
+     "ordem": 0
+    },
+    {
+     "nome": "Aquários",
+     "itens": "Aquários|Kits Completos",
+     "ordem": 1
+    },
+    {
+     "nome": "Equipamentos",
+     "itens": "Filtros|Termostatos|Bombas",
+     "ordem": 2
+    },
+    {
+     "nome": "Tratamento da Água",
+     "itens": "Condicionadores|Testes de Água",
+     "ordem": 3
+    }
+   ]
+  },
+  {
+   "id": "roedores",
+   "nome": "Roedores",
+   "curto": null,
+   "icone": "🐹",
+   "cor": "laranja",
+   "agro": false,
+   "outro": true,
+   "ordem": 4,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Ração|Feno|Petiscos",
+     "ordem": 0
+    },
+    {
+     "nome": "Gaiolas e Acessórios",
+     "itens": "Gaiolas|Rodas|Casinhas",
+     "ordem": 1
+    },
+    {
+     "nome": "Higiene",
+     "itens": "Serragem|Substrato",
+     "ordem": 2
+    }
+   ]
+  },
+  {
+   "id": "bovinos",
+   "nome": "Bovinos",
+   "curto": null,
+   "icone": "🐄",
+   "cor": "verde",
+   "agro": true,
+   "outro": false,
+   "ordem": 5,
+   "categorias": [
+    {
+     "nome": "Nutrição",
+     "itens": "Sal Mineral|Ração|Suplemento Proteico",
+     "ordem": 0
+    },
+    {
+     "nome": "Saúde",
+     "itens": "Vacinas|Vermífugos|Antibióticos",
+     "ordem": 1
+    },
+    {
+     "nome": "Controle de Parasitas",
+     "itens": "Carrapaticidas|Mosquicidas",
+     "ordem": 2
+    },
+    {
+     "nome": "Manejo",
+     "itens": "Brincos|Seringas|Cabrestos",
+     "ordem": 3
+    },
+    {
+     "nome": "Cercas e Cochos",
+     "itens": "Eletrificadores|Arame|Cochos",
+     "ordem": 4
+    }
+   ]
+  },
+  {
+   "id": "equinos",
+   "nome": "Equinos",
+   "curto": null,
+   "icone": "🐴",
+   "cor": "roxo",
+   "agro": true,
+   "outro": false,
+   "ordem": 6,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Ração|Suplementos|Feno",
+     "ordem": 0
+    },
+    {
+     "nome": "Selaria",
+     "itens": "Selas|Cabeçadas|Mantas",
+     "ordem": 1
+    },
+    {
+     "nome": "Saúde",
+     "itens": "Vermífugos|Pomadas",
+     "ordem": 2
+    },
+    {
+     "nome": "Higiene e Cascos",
+     "itens": "Escovas|Óleo para Cascos|Ferraduras",
+     "ordem": 3
+    }
+   ]
+  },
+  {
+   "id": "aves",
+   "nome": "Aves de Criação",
+   "curto": "Aves",
+   "icone": "🐔",
+   "cor": "laranja",
+   "agro": true,
+   "outro": false,
+   "ordem": 7,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Ração para Poedeiras|Ração para Corte|Milho",
+     "ordem": 0
+    },
+    {
+     "nome": "Equipamentos",
+     "itens": "Bebedouros|Comedouros|Chocadeiras",
+     "ordem": 1
+    },
+    {
+     "nome": "Saúde",
+     "itens": "Vitaminas|Desinfetantes",
+     "ordem": 2
+    }
+   ]
+  },
+  {
+   "id": "suinos",
+   "nome": "Suínos",
+   "curto": null,
+   "icone": "🐖",
+   "cor": "rosa",
+   "agro": true,
+   "outro": false,
+   "ordem": 8,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Ração|Núcleos",
+     "ordem": 0
+    },
+    {
+     "nome": "Saúde",
+     "itens": "Vermífugos|Ferro para Leitões",
+     "ordem": 1
+    },
+    {
+     "nome": "Manejo",
+     "itens": "Bebedouros|Comedouros",
+     "ordem": 2
+    }
+   ]
+  },
+  {
+   "id": "ovinos",
+   "nome": "Ovinos e Caprinos",
+   "curto": "Ovinos",
+   "icone": "🐑",
+   "cor": "cinza",
+   "agro": true,
+   "outro": false,
+   "ordem": 9,
+   "categorias": [
+    {
+     "nome": "Alimentação",
+     "itens": "Ração|Sal Mineral",
+     "ordem": 0
+    },
+    {
+     "nome": "Saúde",
+     "itens": "Vermífugos",
+     "ordem": 1
+    },
+    {
+     "nome": "Manejo",
+     "itens": "Tesouras de Tosquia|Brincos",
+     "ordem": 2
+    }
+   ]
+  }
+ ],
+ "produtos": [
+  {
+   "nome": "Ração Premium Cães Adultos 15kg",
+   "animalId": "caes",
+   "categoria": "Ração",
+   "preco": 189.9,
+   "estoque": 30,
+   "icone": "🦴",
+   "cor": "amarelo",
+   "selo": "Mais vendido",
+   "descricao": "Ração completa para cães adultos de porte médio e grande."
+  },
+  {
+   "nome": "Ração Filhotes Raças Pequenas 3kg",
+   "animalId": "caes",
+   "categoria": "Ração",
+   "preco": 64.9,
+   "estoque": 25,
+   "icone": "🐶",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": "Ração para filhotes até 12 meses."
+  },
+  {
+   "nome": "Sachê Cães Carne ao Molho 100g",
+   "animalId": "caes",
+   "categoria": "Ração",
+   "preco": 3.99,
+   "estoque": 120,
+   "icone": "🥫",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Bifinho de Carne 65g",
+   "animalId": "caes",
+   "categoria": "Petiscos e Ossos",
+   "preco": 9.9,
+   "estoque": 60,
+   "icone": "🥓",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Osso Nó Natural",
+   "animalId": "caes",
+   "categoria": "Petiscos e Ossos",
+   "preco": 14.9,
+   "estoque": 40,
+   "icone": "🦴",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Antipulgas Cães 10–20kg",
+   "animalId": "caes",
+   "categoria": "Farmácia",
+   "preco": 54.9,
+   "estoque": 9,
+   "icone": "💊",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Bolinha de Borracha",
+   "animalId": "caes",
+   "categoria": "Brinquedos",
+   "preco": 12.9,
+   "estoque": 50,
+   "icone": "🎾",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Pelúcia Patinho",
+   "animalId": "caes",
+   "categoria": "Brinquedos",
+   "preco": 24.9,
+   "estoque": 15,
+   "icone": "🦆",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Coleira Ajustável M",
+   "animalId": "caes",
+   "categoria": "Coleiras e Guias",
+   "preco": 29.9,
+   "estoque": 35,
+   "icone": "🎀",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Shampoo Neutro 500ml",
+   "animalId": "caes",
+   "categoria": "Higiene e Beleza",
+   "preco": 24.5,
+   "estoque": 30,
+   "icone": "🧴",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Tapete Higiênico 30 un.",
+   "animalId": "caes",
+   "categoria": "Higiene e Beleza",
+   "preco": 59.9,
+   "estoque": 18,
+   "icone": "🧻",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Cama Redonda M",
+   "animalId": "caes",
+   "categoria": "Camas e Casinhas",
+   "preco": 119.9,
+   "estoque": 6,
+   "icone": "🛏️",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Gatos Castrados 10kg",
+   "animalId": "gatos",
+   "categoria": "Ração",
+   "preco": 159.9,
+   "estoque": 20,
+   "icone": "🐱",
+   "cor": "azul",
+   "selo": "Oferta",
+   "descricao": "Ração para gatos adultos castrados."
+  },
+  {
+   "nome": "Sachê Gatos Salmão 85g",
+   "animalId": "gatos",
+   "categoria": "Ração",
+   "preco": 3.49,
+   "estoque": 150,
+   "icone": "🐟",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Areia Sanitária 4kg",
+   "animalId": "gatos",
+   "categoria": "Areia e Higiene",
+   "preco": 19.9,
+   "estoque": 45,
+   "icone": "🧺",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Arranhador de Sisal",
+   "animalId": "gatos",
+   "categoria": "Arranhadores e Brinquedos",
+   "preco": 79.9,
+   "estoque": 10,
+   "icone": "🧶",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Varinha com Penas",
+   "animalId": "gatos",
+   "categoria": "Arranhadores e Brinquedos",
+   "preco": 15.9,
+   "estoque": 30,
+   "icone": "🪶",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Toca Iglu",
+   "animalId": "gatos",
+   "categoria": "Camas e Tocas",
+   "preco": 89.9,
+   "estoque": 5,
+   "icone": "🏠",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Alpiste 500g",
+   "animalId": "passaros",
+   "categoria": "Alimentação",
+   "preco": 11.9,
+   "estoque": 40,
+   "icone": "🌾",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Mistura para Calopsita 1kg",
+   "animalId": "passaros",
+   "categoria": "Alimentação",
+   "preco": 24.9,
+   "estoque": 25,
+   "icone": "🌻",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Gaiola Média",
+   "animalId": "passaros",
+   "categoria": "Gaiolas e Viveiros",
+   "preco": 149.9,
+   "estoque": 4,
+   "icone": "🪺",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração em Flocos 50g",
+   "animalId": "peixes",
+   "categoria": "Alimentação",
+   "preco": 18.9,
+   "estoque": 30,
+   "icone": "🐠",
+   "cor": "azul",
+   "selo": "Novo",
+   "descricao": ""
+  },
+  {
+   "nome": "Filtro Externo 400L/h",
+   "animalId": "peixes",
+   "categoria": "Equipamentos",
+   "preco": 99.9,
+   "estoque": 7,
+   "icone": "💧",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Condicionador de Água 120ml",
+   "animalId": "peixes",
+   "categoria": "Tratamento da Água",
+   "preco": 16.9,
+   "estoque": 25,
+   "icone": "🧪",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Hamster 500g",
+   "animalId": "roedores",
+   "categoria": "Alimentação",
+   "preco": 21.9,
+   "estoque": 30,
+   "icone": "🐹",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Feno Natural 400g",
+   "animalId": "roedores",
+   "categoria": "Alimentação",
+   "preco": 17.9,
+   "estoque": 25,
+   "icone": "🌿",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Roda de Exercício",
+   "animalId": "roedores",
+   "categoria": "Gaiolas e Acessórios",
+   "preco": 34.9,
+   "estoque": 12,
+   "icone": "🎡",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Serragem 1kg",
+   "animalId": "roedores",
+   "categoria": "Higiene",
+   "preco": 12.9,
+   "estoque": 40,
+   "icone": "🪵",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Biscoito Integral 500g",
+   "animalId": "caes",
+   "categoria": "Petiscos e Ossos",
+   "preco": 19.9,
+   "estoque": 35,
+   "icone": "🍪",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vermífugo Cães 4 comprimidos",
+   "animalId": "caes",
+   "categoria": "Farmácia",
+   "preco": 32.9,
+   "estoque": 25,
+   "icone": "💊",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Suplemento Articular 60 tabs",
+   "animalId": "caes",
+   "categoria": "Farmácia",
+   "preco": 89.9,
+   "estoque": 12,
+   "icone": "🧴",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Corda Mordedor",
+   "animalId": "caes",
+   "categoria": "Brinquedos",
+   "preco": 18.9,
+   "estoque": 30,
+   "icone": "🪢",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Guia Retrátil 5m",
+   "animalId": "caes",
+   "categoria": "Coleiras e Guias",
+   "preco": 64.9,
+   "estoque": 14,
+   "icone": "🦮",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Peitoral Acolchoado M",
+   "animalId": "caes",
+   "categoria": "Coleiras e Guias",
+   "preco": 49.9,
+   "estoque": 16,
+   "icone": "🎽",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Escova Rasqueadeira",
+   "animalId": "caes",
+   "categoria": "Higiene e Beleza",
+   "preco": 22.9,
+   "estoque": 20,
+   "icone": "🪮",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Casinha Plástica M",
+   "animalId": "caes",
+   "categoria": "Camas e Casinhas",
+   "preco": 189.9,
+   "estoque": 5,
+   "icone": "🏠",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Cobertor Pet Soft",
+   "animalId": "caes",
+   "categoria": "Camas e Casinhas",
+   "preco": 39.9,
+   "estoque": 20,
+   "icone": "🧣",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Filhotes Gatos 1kg",
+   "animalId": "gatos",
+   "categoria": "Ração",
+   "preco": 42.9,
+   "estoque": 22,
+   "icone": "🐈",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Caixa de Areia com Tampa",
+   "animalId": "gatos",
+   "categoria": "Areia e Higiene",
+   "preco": 99.9,
+   "estoque": 8,
+   "icone": "📦",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Pá Higiênica",
+   "animalId": "gatos",
+   "categoria": "Areia e Higiene",
+   "preco": 9.9,
+   "estoque": 40,
+   "icone": "🥄",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Antipulgas Gatos até 4kg",
+   "animalId": "gatos",
+   "categoria": "Farmácia",
+   "preco": 49.9,
+   "estoque": 18,
+   "icone": "💧",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vermífugo Gatos 2 comprimidos",
+   "animalId": "gatos",
+   "categoria": "Farmácia",
+   "preco": 24.9,
+   "estoque": 25,
+   "icone": "💊",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ratinho de Pelúcia",
+   "animalId": "gatos",
+   "categoria": "Arranhadores e Brinquedos",
+   "preco": 11.9,
+   "estoque": 40,
+   "icone": "🐭",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Cama Nuvem Gatos",
+   "animalId": "gatos",
+   "categoria": "Camas e Tocas",
+   "preco": 79.9,
+   "estoque": 9,
+   "icone": "☁️",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Farinhada com Ovo 500g",
+   "animalId": "passaros",
+   "categoria": "Alimentação",
+   "preco": 16.9,
+   "estoque": 30,
+   "icone": "🥚",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Poleiro Natural",
+   "animalId": "passaros",
+   "categoria": "Gaiolas e Viveiros",
+   "preco": 14.9,
+   "estoque": 25,
+   "icone": "🌳",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ninho de Fibra",
+   "animalId": "passaros",
+   "categoria": "Gaiolas e Viveiros",
+   "preco": 12.9,
+   "estoque": 20,
+   "icone": "🪺",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Bebedouro para Pássaros",
+   "animalId": "passaros",
+   "categoria": "Comedouros e Bebedouros",
+   "preco": 8.9,
+   "estoque": 40,
+   "icone": "💧",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Comedouro Externo",
+   "animalId": "passaros",
+   "categoria": "Comedouros e Bebedouros",
+   "preco": 10.9,
+   "estoque": 35,
+   "icone": "🥣",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vitamina para Pássaros 20ml",
+   "animalId": "passaros",
+   "categoria": "Saúde",
+   "preco": 18.9,
+   "estoque": 25,
+   "icone": "💊",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Suplemento para Muda 100g",
+   "animalId": "passaros",
+   "categoria": "Saúde",
+   "preco": 22.9,
+   "estoque": 15,
+   "icone": "🪶",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Granulada 100g",
+   "animalId": "peixes",
+   "categoria": "Alimentação",
+   "preco": 21.9,
+   "estoque": 30,
+   "icone": "🐡",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Aquário de Vidro 40L",
+   "animalId": "peixes",
+   "categoria": "Aquários",
+   "preco": 229.9,
+   "estoque": 4,
+   "icone": "🐟",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Kit Aquário Completo 20L",
+   "animalId": "peixes",
+   "categoria": "Aquários",
+   "preco": 279.9,
+   "estoque": 3,
+   "icone": "🫧",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Termostato 100W",
+   "animalId": "peixes",
+   "categoria": "Equipamentos",
+   "preco": 69.9,
+   "estoque": 10,
+   "icone": "🌡️",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Bomba Submersa 600L/h",
+   "animalId": "peixes",
+   "categoria": "Equipamentos",
+   "preco": 89.9,
+   "estoque": 8,
+   "icone": "⚙️",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Teste de pH",
+   "animalId": "peixes",
+   "categoria": "Tratamento da Água",
+   "preco": 29.9,
+   "estoque": 20,
+   "icone": "🧫",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Petisco para Roedores 80g",
+   "animalId": "roedores",
+   "categoria": "Alimentação",
+   "preco": 9.9,
+   "estoque": 40,
+   "icone": "🥕",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Gaiola para Hamster",
+   "animalId": "roedores",
+   "categoria": "Gaiolas e Acessórios",
+   "preco": 139.9,
+   "estoque": 5,
+   "icone": "🏡",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Casinha de Madeira",
+   "animalId": "roedores",
+   "categoria": "Gaiolas e Acessórios",
+   "preco": 29.9,
+   "estoque": 15,
+   "icone": "🛖",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Substrato de Papel 1kg",
+   "animalId": "roedores",
+   "categoria": "Higiene",
+   "preco": 24.9,
+   "estoque": 20,
+   "icone": "📄",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Sal Mineral Bovinos 25kg",
+   "animalId": "bovinos",
+   "categoria": "Nutrição",
+   "preco": 119.9,
+   "estoque": 30,
+   "icone": "🧂",
+   "cor": "verde",
+   "selo": "Mais vendido",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Bovinos Engorda 40kg",
+   "animalId": "bovinos",
+   "categoria": "Nutrição",
+   "preco": 139.9,
+   "estoque": 25,
+   "icone": "🌾",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Suplemento Proteico 30kg",
+   "animalId": "bovinos",
+   "categoria": "Nutrição",
+   "preco": 159.9,
+   "estoque": 15,
+   "icone": "💪",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vacina Clostridioses 50 doses",
+   "animalId": "bovinos",
+   "categoria": "Saúde",
+   "preco": 149.9,
+   "estoque": 10,
+   "icone": "💉",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vermífugo Injetável 500ml",
+   "animalId": "bovinos",
+   "categoria": "Saúde",
+   "preco": 189.9,
+   "estoque": 8,
+   "icone": "🧪",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Antibiótico Bovino 50ml",
+   "animalId": "bovinos",
+   "categoria": "Saúde",
+   "preco": 79.9,
+   "estoque": 12,
+   "icone": "💊",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Carrapaticida Pour-on 1L",
+   "animalId": "bovinos",
+   "categoria": "Controle de Parasitas",
+   "preco": 129.9,
+   "estoque": 14,
+   "icone": "🕷️",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Mosquicida 1L",
+   "animalId": "bovinos",
+   "categoria": "Controle de Parasitas",
+   "preco": 59.9,
+   "estoque": 18,
+   "icone": "🪰",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Brinco de Identificação 25 un.",
+   "animalId": "bovinos",
+   "categoria": "Manejo",
+   "preco": 49.9,
+   "estoque": 20,
+   "icone": "🏷️",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Seringa Pistola 50ml",
+   "animalId": "bovinos",
+   "categoria": "Manejo",
+   "preco": 69.9,
+   "estoque": 10,
+   "icone": "💉",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Cabresto de Corda",
+   "animalId": "bovinos",
+   "categoria": "Manejo",
+   "preco": 34.9,
+   "estoque": 15,
+   "icone": "🪢",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Eletrificador de Cerca 30km",
+   "animalId": "bovinos",
+   "categoria": "Cercas e Cochos",
+   "preco": 389.9,
+   "estoque": 4,
+   "icone": "⚡",
+   "cor": "amarelo",
+   "selo": "Oferta",
+   "descricao": ""
+  },
+  {
+   "nome": "Arame Galvanizado 1000m",
+   "animalId": "bovinos",
+   "categoria": "Cercas e Cochos",
+   "preco": 249.9,
+   "estoque": 6,
+   "icone": "➰",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Cocho Plástico 100L",
+   "animalId": "bovinos",
+   "categoria": "Cercas e Cochos",
+   "preco": 119.9,
+   "estoque": 7,
+   "icone": "🪣",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Equinos 40kg",
+   "animalId": "equinos",
+   "categoria": "Alimentação",
+   "preco": 149.9,
+   "estoque": 15,
+   "icone": "🌾",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Suplemento Equino 5kg",
+   "animalId": "equinos",
+   "categoria": "Alimentação",
+   "preco": 119.9,
+   "estoque": 10,
+   "icone": "💪",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Feno Tifton (fardo)",
+   "animalId": "equinos",
+   "categoria": "Alimentação",
+   "preco": 39.9,
+   "estoque": 30,
+   "icone": "🌿",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Sela Australiana",
+   "animalId": "equinos",
+   "categoria": "Selaria",
+   "preco": 899.9,
+   "estoque": 2,
+   "icone": "🏇",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Cabeçada de Couro",
+   "animalId": "equinos",
+   "categoria": "Selaria",
+   "preco": 129.9,
+   "estoque": 6,
+   "icone": "🐴",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Manta para Sela",
+   "animalId": "equinos",
+   "categoria": "Selaria",
+   "preco": 89.9,
+   "estoque": 8,
+   "icone": "🟫",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vermífugo Pasta Equinos",
+   "animalId": "equinos",
+   "categoria": "Saúde",
+   "preco": 39.9,
+   "estoque": 20,
+   "icone": "🧴",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Pomada Cicatrizante 200g",
+   "animalId": "equinos",
+   "categoria": "Saúde",
+   "preco": 44.9,
+   "estoque": 15,
+   "icone": "🩹",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Escova para Cavalos",
+   "animalId": "equinos",
+   "categoria": "Higiene e Cascos",
+   "preco": 27.9,
+   "estoque": 14,
+   "icone": "🪮",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Óleo para Cascos 1L",
+   "animalId": "equinos",
+   "categoria": "Higiene e Cascos",
+   "preco": 54.9,
+   "estoque": 10,
+   "icone": "🛢️",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ferradura nº 0 (par)",
+   "animalId": "equinos",
+   "categoria": "Higiene e Cascos",
+   "preco": 29.9,
+   "estoque": 20,
+   "icone": "🧲",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Galinhas Poedeiras 25kg",
+   "animalId": "aves",
+   "categoria": "Alimentação",
+   "preco": 98,
+   "estoque": 20,
+   "icone": "🐔",
+   "cor": "laranja",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Frango de Corte 25kg",
+   "animalId": "aves",
+   "categoria": "Alimentação",
+   "preco": 94.9,
+   "estoque": 18,
+   "icone": "🐓",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Milho Triturado 25kg",
+   "animalId": "aves",
+   "categoria": "Alimentação",
+   "preco": 59.9,
+   "estoque": 30,
+   "icone": "🌽",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Bebedouro Pressão 5L",
+   "animalId": "aves",
+   "categoria": "Equipamentos",
+   "preco": 34.9,
+   "estoque": 18,
+   "icone": "💧",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Comedouro Tubular 10kg",
+   "animalId": "aves",
+   "categoria": "Equipamentos",
+   "preco": 49.9,
+   "estoque": 12,
+   "icone": "🥣",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Chocadeira 60 ovos",
+   "animalId": "aves",
+   "categoria": "Equipamentos",
+   "preco": 459.9,
+   "estoque": 3,
+   "icone": "🥚",
+   "cor": "laranja",
+   "selo": "Novo",
+   "descricao": ""
+  },
+  {
+   "nome": "Vitamina para Aves 100ml",
+   "animalId": "aves",
+   "categoria": "Saúde",
+   "preco": 26.9,
+   "estoque": 20,
+   "icone": "💊",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Desinfetante para Aviário 1L",
+   "animalId": "aves",
+   "categoria": "Saúde",
+   "preco": 39.9,
+   "estoque": 15,
+   "icone": "🧴",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Suínos Crescimento 40kg",
+   "animalId": "suinos",
+   "categoria": "Alimentação",
+   "preco": 129.9,
+   "estoque": 15,
+   "icone": "🐖",
+   "cor": "rosa",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Núcleo para Suínos 20kg",
+   "animalId": "suinos",
+   "categoria": "Alimentação",
+   "preco": 169.9,
+   "estoque": 8,
+   "icone": "🌾",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vermífugo Suínos 1L",
+   "animalId": "suinos",
+   "categoria": "Saúde",
+   "preco": 89.9,
+   "estoque": 10,
+   "icone": "🧪",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ferro Injetável Leitões 100ml",
+   "animalId": "suinos",
+   "categoria": "Saúde",
+   "preco": 49.9,
+   "estoque": 12,
+   "icone": "💉",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Bebedouro Chupeta",
+   "animalId": "suinos",
+   "categoria": "Manejo",
+   "preco": 19.9,
+   "estoque": 30,
+   "icone": "🚰",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Comedouro para Suínos",
+   "animalId": "suinos",
+   "categoria": "Manejo",
+   "preco": 149.9,
+   "estoque": 6,
+   "icone": "🪣",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Ração Ovinos e Caprinos 40kg",
+   "animalId": "ovinos",
+   "categoria": "Alimentação",
+   "preco": 119.9,
+   "estoque": 12,
+   "icone": "🐑",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Sal Mineral Ovinos 25kg",
+   "animalId": "ovinos",
+   "categoria": "Alimentação",
+   "preco": 109.9,
+   "estoque": 10,
+   "icone": "🧂",
+   "cor": "verde",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vermífugo Ovinos 1L",
+   "animalId": "ovinos",
+   "categoria": "Saúde",
+   "preco": 99.9,
+   "estoque": 8,
+   "icone": "🧪",
+   "cor": "roxo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Tesoura de Tosquia",
+   "animalId": "ovinos",
+   "categoria": "Manejo",
+   "preco": 79.9,
+   "estoque": 6,
+   "icone": "✂️",
+   "cor": "cinza",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Brinco Ovinos 50 un.",
+   "animalId": "ovinos",
+   "categoria": "Manejo",
+   "preco": 44.9,
+   "estoque": 15,
+   "icone": "🏷️",
+   "cor": "amarelo",
+   "selo": "",
+   "descricao": ""
+  },
+  {
+   "nome": "Vacina para Ovinos 10 doses",
+   "animalId": "ovinos",
+   "categoria": "Saúde",
+   "preco": 64.9,
+   "estoque": 10,
+   "icone": "💉",
+   "cor": "azul",
+   "selo": "",
+   "descricao": ""
+  }
+ ],
+ "servicos": [
+  {
+   "id": "banho",
+   "nome": "Banho",
+   "descricao": "Shampoo neutro, secagem e perfume",
+   "preco": 45,
+   "icone": "🛁"
+  },
+  {
+   "id": "tosa",
+   "nome": "Tosa higiênica",
+   "descricao": "Patas, barriga e região íntima",
+   "preco": 35,
+   "icone": "✂️"
+  },
+  {
+   "id": "completo",
+   "nome": "Banho + Tosa completa",
+   "descricao": "Banho, tosa geral, unhas e ouvidos",
+   "preco": 80,
+   "icone": "✨"
+  }
+ ],
+ "adicionais": [
+  {
+   "id": "hidratacao",
+   "nome": "Hidratação dos pelos",
+   "descricao": "Pelos macios e brilhantes",
+   "preco": 25,
+   "icone": "💧"
+  },
+  {
+   "id": "unhas",
+   "nome": "Corte de unhas",
+   "descricao": "Com lixamento",
+   "preco": 15,
+   "icone": "💅"
+  },
+  {
+   "id": "dentes",
+   "nome": "Escovação dos dentes",
+   "descricao": "Hálito fresquinho",
+   "preco": 15,
+   "icone": "🪥"
+  },
+  {
+   "id": "perfume",
+   "nome": "Perfume e lacinho",
+   "descricao": "Aquele charme final",
+   "preco": 10,
+   "icone": "🎀"
+  }
+ ]
+}
