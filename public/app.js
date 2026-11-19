@@ -197,7 +197,7 @@ async function sincronizar() { await carregar(); montarMenu(); rerenderMantendoR
 const $ = (s) => document.querySelector(s);
 const dinheiro = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dataBR = (iso) => iso ? iso.slice(0, 10).split('-').reverse().join('/') : '';
-const hojeISO = () => new Date().toISOString().slice(0, 10);
+const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const novoId = (lista) => lista.reduce((m, x) => Math.max(m, x.id), 0) + 1;
 const animalPor = (id) => ANIMAIS.find(a => a.id === id) || (id === 'agro' ? { id: 'agro', nome: 'Agro', icone: '🚜', grupos: [] } : { nome: id, icone: '🐾', grupos: [] });
 const servicoPor = (id) => SERVICOS.find(s => s.id === id) || { nome: id };
@@ -929,7 +929,7 @@ async function confirmarAgenda() {
 async function buscarHorarios() {
     if (!ag.data) { ag.ocupados = []; return rerenderMantendoRolagem(); }
     const r = await api('GET', '/horarios?data=' + ag.data);
-    ag.ocupados = r.ocupados;
+    ag.ocupados = [...r.ocupados, ...(r.passados || [])]; // ocupados ou que já passaram (hoje)
     if (ag.hora && ag.ocupados.includes(ag.hora)) ag.hora = null;
     rerenderMantendoRolagem();
 }
@@ -1220,9 +1220,11 @@ function contaConteudo(u) {
         const lista = db.pedidos.filter(p => p.clienteId === u.id).reverse();
         return `<div class="caixa"><h2>Meus pedidos</h2>${lista.length ? `
             <div class="tabela-wrap"><table>
-                <tr><th>Nº</th><th>Data</th><th>Itens</th><th>Total</th><th>Status</th></tr>
-                ${lista.map(p => `<tr><td>#${p.id}</td><td>${dataBR(p.data)}</td><td>${p.itens.map(i => `${i.qtd}× ${esc(i.nome)}`).join('<br>')}</td><td>${dinheiro(p.total)}</td><td><span class="status st-${p.status.replace(' ', '-')}">${p.status}</span></td></tr>`).join('')}
-            </table></div>` : '<p class="vazio">Você ainda não fez nenhum pedido.</p>'}</div>`;
+                <tr><th>Nº</th><th>Data</th><th>Itens</th><th>Total</th><th>Status</th><th></th></tr>
+                ${lista.map(p => `<tr><td>#${p.id}</td><td>${dataBR(p.data)}</td><td>${p.itens.map(i => `${i.qtd}× ${esc(i.nome)}`).join('<br>')}</td><td>${dinheiro(p.total)}</td><td><span class="status st-${p.status.replace(' ', '-')}">${p.status}</span></td>
+                <td>${p.status === 'Recebido' ? `<button class="btn btn-perigo btn-peq" data-acao="cancelar-pedido" data-id="${p.id}">Cancelar</button>` : ''}</td></tr>`).join('')}
+            </table></div>
+            <p class="nota" style="margin-top:14px">Dá para cancelar o pedido enquanto ele está como <b>Recebido</b>. Depois que entra em separação, fale com a loja.</p>` : '<p class="vazio">Você ainda não fez nenhum pedido.</p>'}</div>`;
     }
     if (contaAba === 'agendamentos') {
         const meus = db.agendamentos.filter(a => a.clienteId === u.id);
@@ -1688,6 +1690,9 @@ document.addEventListener('click', (e) => {
         case 'editar-pet': formPet(petPor(usuarioLogado(), id)); break;
         case 'excluir-pet': pedirConfirmacao(`Excluir ${petPor(usuarioLogado(), id).nome} dos seus pets?`, () => executar(async () => { await api('DELETE', '/pets/' + id); await sincronizar(); aviso('Pet excluído'); })); break;
         case 'sub-agenda': subAgenda = el.dataset.valor; rerenderMantendoRolagem(); break;
+        case 'cancelar-pedido':
+            pedirConfirmacao('Cancelar este pedido? Os itens voltam para a loja.', () => executar(async () => { await api('PATCH', '/pedidos/' + id, { status: 'Cancelado' }); await sincronizar(); aviso('Pedido cancelado'); }));
+            break;
         case 'cancelar-agenda':
             pedirConfirmacao('Cancelar este agendamento?', () => executar(async () => { await api('PATCH', '/agendamentos/' + id, { status: 'Cancelado' }); await sincronizar(); aviso('Agendamento cancelado'); }));
             break;

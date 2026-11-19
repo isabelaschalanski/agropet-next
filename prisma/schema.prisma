@@ -1,5 +1,5 @@
 // Banco de dados da AgroPet (Prisma + SQLite)
-// Depois de mudar este arquivo, rode:  npx prisma migrate dev --name descricao-da-mudanca
+// Depois de mudar este arquivo, rode:  npx prisma db push
 
 generator client {
   provider = "prisma-client-js"
@@ -180,6 +180,7 @@ model Agendamento {
   valor      Float
   gratis     Boolean  @default(false)
   status     String   @default("Agendado") // Agendado, Concluído, Cancelado
+  vaga       String?  @unique // "AAAA-MM-DD HH:MM" enquanto não está cancelado (vazio quando cancela). Impede dois no mesmo horário
   criadoEm   DateTime @default(now())
 }
 

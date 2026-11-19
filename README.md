@@ -68,6 +68,32 @@ Abra **http://localhost:3000** no navegador.
 
 ---
 
+## 📦 Produtos e imagens cadastrados pelo site
+
+O que é cadastrado ou alterado pelo painel do admin (produtos, imagens, textos da página inicial, frete) fica só no banco **do seu computador** (`prisma/dev.db`), que não vai para o GitHub.
+
+Para mandar essas mudanças para a equipe:
+
+```bash
+node prisma/exportar.mjs
+git add .
+git commit -m "produtos atualizados"
+git push
+```
+
+O `exportar.mjs` copia o catálogo do banco para o `prisma/dados.json`. Os colegas recebem assim:
+
+```bash
+git pull
+node prisma/seed.mjs
+```
+
+> ⚠️ O `seed.mjs` apaga o banco e recria tudo a partir do `dados.json`. Se você cadastrou algo pelo site, rode o `exportar.mjs` **antes**, senão perde.
+>
+> O exportar não leva usuários, pets, pedidos, agendamentos nem assinaturas. Esses são dados de teste, e o seed recria.
+
+---
+
 ## 👤 Usuários de teste
 
 | Tipo | Usuário | Senha |
@@ -91,6 +117,7 @@ agropet-next/
 ├── prisma/
 │   ├── schema.prisma    → tabelas do banco
 │   ├── seed.mjs         → dados iniciais
+│   ├── exportar.mjs     → copia o banco para o dados.json
 │   └── dados.json       → catálogo de produtos
 ├── public/
 │   ├── app.js           → funcionamento do site (front-end)
@@ -109,6 +136,13 @@ Antes de começar a mexer, pegue o que os outros enviaram:
 
 ```bash
 git pull
+```
+
+Se no que veio tiver mudança em `prisma/schema.prisma` (tabelas do banco), rode também:
+
+```bash
+npx prisma db push
+node prisma/seed.mjs
 ```
 
 Depois de fazer suas mudanças:

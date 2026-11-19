@@ -42,7 +42,7 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 | POST 🔓 | `/api/carrinho` | `{ itens: [{ produtoId, qtd }] }` | Calcula subtotal, desconto do Clube, frete e total |
 | GET 👤 | `/api/pedidos` | — | Meus pedidos (o admin vê todos) |
 | POST 👤 | `/api/pedidos` | `{ itens: [{ produtoId, qtd }], pagamento: "Pix", endereco: { rua, numero, bairro, cidade, cep } }` | Fecha a compra e baixa o estoque |
-| PATCH ⚙️ | `/api/pedidos/1001` | `{ status }` | Muda o status (Recebido, Em separação, Enviado, Entregue, Cancelado). Cancelar devolve o estoque |
+| PATCH 👤 | `/api/pedidos/1001` | `{ status }` | Admin: muda o status (Recebido, Em separação, Enviado, Entregue, Cancelado). Cliente: só `Cancelado`, no próprio pedido e enquanto está `Recebido`. Cancelar devolve o estoque |
 
 ## Clube AgroPet
 
@@ -58,13 +58,13 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 | Método | Rota | Corpo / parâmetros | O que faz |
 |---|---|---|---|
 | GET 🔓 | `/api/servicos` | — | Serviços, adicionais, portes e horários |
-| GET 🔓 | `/api/horarios` | `?data=2026-11-20` | Horários livres e ocupados (domingo = fechado) |
+| GET 🔓 | `/api/horarios` | `?data=2026-11-20` | Horários `livres`, `ocupados` e `passados` (hoje, já passou). Domingo = fechado |
 | GET 👤 | `/api/pets` | — | Meus pets |
 | POST 👤 | `/api/pets` | `{ nome, tipo, porte, raca?, sexo?, nascimento? }` | Cadastra pet |
 | PUT / DELETE 👤 | `/api/pets/3` | (PUT) mesmos campos | Edita / exclui pet |
 | GET 👤 | `/api/agendamentos` | — | Meus agendamentos (o admin vê todos) |
 | POST 👤 | `/api/agendamentos` | `{ petId, servicoId: "banho", adicionais: ["unhas"], data, hora }` | Agenda. O banho grátis do Premium entra sozinho |
-| PATCH 👤 | `/api/agendamentos/7` | `{ status }` | Cliente: só `Cancelado`. Admin: Agendado, Concluído, Cancelado |
+| PATCH 👤 | `/api/agendamentos/7` | `{ status }` | Cliente: só `Cancelado`, antes do horário. Admin: Agendado, Concluído, Cancelado. Cancelar libera o horário; reativar dá 409 se ele já foi ocupado |
 
 ## Gerenciamento (admin)
 

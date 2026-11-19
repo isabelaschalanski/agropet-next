@@ -1,6 +1,7 @@
-// Coloca os dados de exemplo no banco (os mesmos da prévia).
+// Coloca os dados no banco: o catálogo do dados.json + usuários, pedidos e agendamentos de exemplo.
 // Rodar:  node prisma/seed.mjs
 // ATENÇÃO: apaga tudo o que estiver no banco antes de colocar os dados.
+// Cadastrou produtos ou imagens pelo site? Rode antes  node prisma/exportar.mjs  para guardar no dados.json.
 
 import { readFileSync } from 'node:fs';
 import { scryptSync, randomBytes } from 'node:crypto';
@@ -54,7 +55,7 @@ async function main() {
         const criado = await prisma.produto.create({ data: { ...prod, categoriaId: idCategoria(p.animalId, categoria) } });
         idsProdutos.push(criado.id); // idsProdutos[0] = produto 1 da prévia, e assim por diante
     }
-    const prod = (n) => idsProdutos[n - 1];
+    const prod = (n) => idsProdutos[n - 1] ?? idsProdutos[0]; // se o produto n não existir mais, usa o primeiro
 
     console.log('Banho e Tosa...');
     await prisma.servico.createMany({ data: dados.servicos });
@@ -94,10 +95,11 @@ async function main() {
     } });
     const [thor, luna] = maria.pets;
     const [mimi] = joao.pets;
-    await prisma.agendamento.createMany({ data: [
-        { clienteId: maria.id, petId: thor.id, petNome: 'Thor', especie: 'Cachorro', porte: 'Grande', servicoId: 'completo', adicionais: 'hidratacao', data: diaISO(2), hora: '09:30', valor: 153 },
-        { clienteId: joao.id, petId: mimi.id, petNome: 'Mimi', especie: 'Gato', porte: 'Pequeno', servicoId: 'banho', data: diaISO(2), hora: '13:30', valor: 45 },
-        { clienteId: maria.id, petId: luna.id, petNome: 'Luna', especie: 'Gato', porte: 'Pequeno', servicoId: 'banho', adicionais: 'unhas', data: diaISO(-15), hora: '11:00', valor: 15, gratis: true, status: 'Concluído' },
+    const temServicos = ['banho', 'completo'].every(id => dados.servicos.some(sv => sv.id === id));
+    if (temServicos) await prisma.agendamento.createMany({ data: [
+        { clienteId: maria.id, petId: thor.id, petNome: 'Thor', especie: 'Cachorro', porte: 'Grande', servicoId: 'completo', adicionais: 'hidratacao', data: diaISO(2), hora: '09:30', vaga: `${diaISO(2)} 09:30`, valor: 153 },
+        { clienteId: joao.id, petId: mimi.id, petNome: 'Mimi', especie: 'Gato', porte: 'Pequeno', servicoId: 'banho', data: diaISO(2), hora: '13:30', vaga: `${diaISO(2)} 13:30`, valor: 45 },
+        { clienteId: maria.id, petId: luna.id, petNome: 'Luna', especie: 'Gato', porte: 'Pequeno', servicoId: 'banho', adicionais: 'unhas', data: diaISO(-15), hora: '11:00', vaga: `${diaISO(-15)} 11:00`, valor: 15, gratis: true, status: 'Concluído' },
     ] });
 
     console.log(`Pronto! ${idsProdutos.length} produtos, 3 usuários (admin / maria@email.com / joao@email.com — senha 123).`);
