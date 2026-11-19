@@ -1,7 +1,8 @@
 // Coloca os dados no banco: o catálogo do dados.json + usuários, pedidos e agendamentos de exemplo.
 // Rodar:  node prisma/seed.mjs
-// ATENÇÃO: apaga tudo o que estiver no banco antes de colocar os dados.
-// Cadastrou produtos ou imagens pelo site? Rode antes  node prisma/exportar.mjs  para guardar no dados.json.
+// ATENÇÃO: apaga TUDO o que estiver no banco antes de colocar os dados. O banco é o do Supabase,
+// o mesmo do site publicado e de toda a equipe: combine antes de rodar.
+// Para não perder o que foi cadastrado pelo site, rode antes  node prisma/exportar.mjs
 
 import { readFileSync } from 'node:fs';
 import { scryptSync, randomBytes } from 'node:crypto';

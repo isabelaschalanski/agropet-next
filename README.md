@@ -17,10 +17,11 @@ Além disso, existe uma **área de administração**, separada da loja. Nela é 
 | Parte | Tecnologia |
 |---|---|
 | Framework (front e back) | [Next.js](https://nextjs.org) |
-| Banco de dados | SQLite |
+| Banco de dados | PostgreSQL no [Supabase](https://supabase.com) |
 | Acesso ao banco | [Prisma](https://www.prisma.io) |
 | Linguagem | JavaScript |
 | Estilo | CSS |
+| Hospedagem | [Vercel](https://vercel.com) |
 
 ---
 
@@ -43,17 +44,19 @@ npm install
 
 **3. Crie o arquivo `.env`**
 
-Crie um arquivo chamado `.env` na pasta principal do projeto, com esta linha:
+Crie um arquivo chamado `.env` na pasta principal do projeto. Peça para quem cuida do Supabase as duas linhas com os endereços do banco. Elas são assim:
 
 ```
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres.xxxx:SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+DIRECT_URL="postgresql://postgres.xxxx:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
 ```
 
-**4. Crie o banco e coloque os dados iniciais**
+> 🔒 Esse arquivo tem a senha do banco. Mande para os colegas por mensagem privada, **nunca** pelo GitHub.
+
+**4. Prepare o Prisma**
 
 ```bash
-npx prisma db push
-node prisma/seed.mjs
+npx prisma generate
 ```
 
 **5. Rode o site**
@@ -64,33 +67,30 @@ npm run dev
 
 Abra **http://localhost:3000** no navegador.
 
-> Para voltar o banco ao estado inicial, rode de novo `node prisma/seed.mjs`.
+O banco é **um só, na internet**, igual para todo mundo: no seu computador, no dos colegas e no site publicado. Produto ou imagem que alguém muda pelo painel do admin aparece para todos na hora.
 
 ---
 
-## 📦 Produtos e imagens cadastrados pelo site
+## 🗄️ Banco de dados (Supabase)
 
-O que é cadastrado ou alterado pelo painel do admin (produtos, imagens, textos da página inicial, frete) fica só no banco **do seu computador** (`prisma/dev.db`), que não vai para o GitHub.
+Só precisa fazer **uma vez**, e só **uma pessoa** faz:
 
-Para mandar essas mudanças para a equipe:
+```bash
+npx prisma db push        # cria as tabelas no Supabase
+node prisma/seed.mjs      # coloca os produtos, usuários e pedidos de exemplo
+```
+
+> ⚠️ O `seed.mjs` **apaga o banco inteiro**, para todo mundo, inclusive o site publicado. Só rode se quiserem voltar tudo ao começo, e combine com a equipe antes.
+
+Se alguém mudar o `prisma/schema.prisma` (tabelas), essa pessoa roda `npx prisma db push` uma vez, e pronto. Não precisa do seed.
+
+### Cópia de segurança do catálogo
 
 ```bash
 node prisma/exportar.mjs
-git add .
-git commit -m "produtos atualizados"
-git push
 ```
 
-O `exportar.mjs` copia o catálogo do banco para o `prisma/dados.json`. Os colegas recebem assim:
-
-```bash
-git pull
-node prisma/seed.mjs
-```
-
-> ⚠️ O `seed.mjs` apaga o banco e recria tudo a partir do `dados.json`. Se você cadastrou algo pelo site, rode o `exportar.mjs` **antes**, senão perde.
->
-> O exportar não leva usuários, pets, pedidos, agendamentos nem assinaturas. Esses são dados de teste, e o seed recria.
+Copia os produtos, as imagens e os textos do site que estão no banco para o `prisma/dados.json`. Faça commit e push depois. Se alguém rodar o seed, o catálogo volta do jeito que estava nessa cópia.
 
 ---
 
@@ -117,7 +117,7 @@ agropet-next/
 ├── prisma/
 │   ├── schema.prisma    → tabelas do banco
 │   ├── seed.mjs         → dados iniciais
-│   ├── exportar.mjs     → copia o banco para o dados.json
+│   ├── exportar.mjs     → cópia de segurança do catálogo
 │   └── dados.json       → catálogo de produtos
 ├── public/
 │   ├── app.js           → funcionamento do site (front-end)
@@ -138,12 +138,7 @@ Antes de começar a mexer, pegue o que os outros enviaram:
 git pull
 ```
 
-Se no que veio tiver mudança em `prisma/schema.prisma` (tabelas do banco), rode também:
-
-```bash
-npx prisma db push
-node prisma/seed.mjs
-```
+Se no que veio tiver mudança no `package.json` ou no `prisma/schema.prisma`, rode também `npm install`.
 
 Depois de fazer suas mudanças:
 
@@ -153,4 +148,10 @@ git commit -m "descreva o que mudou"
 git push
 ```
 
-⚠️ **Não envie** o arquivo `.env` nem o `prisma/dev.db`. Cada pessoa tem os seus, e o `.gitignore` já cuida disso.
+⚠️ **Não envie** o arquivo `.env`. Ele tem a senha do banco, e o `.gitignore` já impede que ele vá.
+
+---
+
+## 🌐 Site publicado (Vercel)
+
+O site fica na Vercel, ligado a este repositório. **Todo `git push` na branch `main` publica a versão nova sozinho**, em 1 a 2 minutos. Antes de enviar, rode `npm run build`. Se der erro aqui, também dá na Vercel.

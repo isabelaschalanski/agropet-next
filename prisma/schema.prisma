@@ -1,4 +1,4 @@
-// Banco de dados da AgroPet (Prisma + SQLite)
+// Banco de dados da AgroPet (Prisma + PostgreSQL no Supabase)
 // Depois de mudar este arquivo, rode:  npx prisma db push
 
 generator client {
@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Supabase: Transaction pooler (porta 6543) com ?pgbouncer=true
+  directUrl = env("DIRECT_URL")   // Supabase: Session pooler (porta 5432), usado pelo  npx prisma db push
 }
 
 // ---------- Contas ----------

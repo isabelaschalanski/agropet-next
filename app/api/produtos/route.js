@@ -19,7 +19,9 @@ export const GET = rota(async (req) => {
     else if (animal === 'outros-pets') where.animal = { outro: true };
     else if (animal) where.animalId = animal;
     if (categoria) where.categoria = { nome: categoria };
-    if (busca) where.OR = [{ nome: { contains: busca } }, { categoria: { nome: { contains: busca } } }, { animal: { nome: { contains: busca } } }];
+    // mode 'insensitive' = não diferencia maiúscula de minúscula (no PostgreSQL precisa avisar)
+    const tem = { contains: busca, mode: 'insensitive' };
+    if (busca) where.OR = [{ nome: tem }, { categoria: { nome: tem } }, { animal: { nome: tem } }];
 
     let produtos = await prisma.produto.findMany({ where, include: { animal: true, categoria: true }, orderBy: { id: 'asc' } });
 

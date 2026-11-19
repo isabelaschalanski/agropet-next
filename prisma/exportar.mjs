@@ -1,10 +1,9 @@
 // Copia o catálogo que está no banco para o prisma/dados.json.
 // Rodar:  node prisma/exportar.mjs
 //
-// Para que serve: o que você muda pelo painel do admin (produtos, categorias, imagens dos banners e dos animais,
-// textos da página inicial, frete, serviços) fica só no SEU banco (prisma/dev.db), que não vai para o GitHub.
-// Rodando este script, essas mudanças vão para o dados.json. Aí é só fazer commit e push, e os colegas
-// recebem com  git pull  +  node prisma/seed.mjs
+// Para que serve: é uma cópia de segurança do catálogo. O que foi cadastrado pelo painel do admin
+// (produtos, categorias, imagens, textos da página inicial, frete, serviços) vai para o dados.json,
+// que fica guardado no GitHub. Se alguém rodar o seed, o catálogo volta igual a essa cópia.
 //
 // Não exporta usuários, pets, pedidos, agendamentos nem assinaturas (são dados de teste; o seed recria).
 
@@ -44,7 +43,7 @@ async function main() {
     console.log(`Pronto! dados.json atualizado: ${animais.length} animais, ${produtos.length} produtos (${comFoto} com foto), ` +
         `${servicos.length} serviços, ${adicionais.length} adicionais.`);
     console.log('Se não gostou, volte o arquivo como estava:  git checkout -- prisma/dados.json');
-    console.log('Agora:  git add .   →   git commit -m "produtos atualizados"   →   git push');
+    console.log('Agora:  git add .   →   git commit -m "copia do catalogo"   →   git push');
 }
 
 main()
