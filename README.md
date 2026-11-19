@@ -1,14 +1,73 @@
-# 🐾 AgroPet
+# 🐾 AgroPet — Pet Shop e Agropecuária Online
 
-Pet shop e agropecuária online, feito como trabalho acadêmico do curso de Ciência da Computação da URI – Santo Ângelo.
+Loja online de produtos para pets e para o campo, com clube de assinatura e agendamento de banho e tosa.
 
-O site tem três partes principais:
+---
 
-- **Loja** – venda avulsa de produtos, organizada por tipo de animal (Cães, Gatos, Outros Pets e animais agro), com filtros na lateral.
-- **Clube AgroPet** – assinatura mensal de rações, com planos Básico e Premium e descontos e benefícios para os assinantes.
-- **Banho e Tosa** – agendamento online para cães e gatos, com escolha de serviço, adicionais, data e horário.
+## 📌 Sobre o projeto
 
-Além disso, existe uma **área de administração**, separada da loja. Nela é possível gerenciar produtos, pedidos, agendamentos, clientes, assinaturas e as imagens do site.
+A AgroPet é uma loja online que junta **pet shop** e **agropecuária**. O site atende tanto quem tem cães e gatos quanto quem cria animais de produção, como bovinos, equinos e aves.
+
+O site tem três serviços principais:
+
+| | Serviço | O que faz |
+|---|---|---|
+| 🛒 | **Loja** | Venda de produtos organizados por tipo de animal, com filtros, busca e carrinho |
+| ⭐ | **Clube AgroPet** | Assinatura mensal de ração, com desconto em toda a loja e outros benefícios |
+| 🛁 | **Banho e Tosa** | Agendamento online para cães e gatos, com escolha de serviço, data e horário |
+
+Além disso, tem uma **área de gerenciamento** separada, onde o administrador cuida dos produtos, pedidos, agendamentos, clientes e da aparência do site.
+
+> Os pagamentos são **simulados**: nenhum valor é cobrado de verdade.
+
+---
+
+## 🧪 Experimente
+
+Para conhecer a loja como cliente, use uma das contas de demonstração ou crie a sua em **Entrar → Cadastrar**:
+
+| Conta | Usuário | Senha | O que dá para ver |
+|---|---|---|---|
+| 👩 Cliente assinante | `maria@email.com` | `123` | Clube Premium, pets cadastrados, pedidos e agendamentos |
+| 👨 Cliente comum | `joao@email.com` | `123` | Conta sem assinatura, para comparar preços e frete |
+
+A área de gerenciamento é restrita à equipe da loja.
+
+### Um passeio pelo site
+
+1. **Navegue pela loja:** escolha um animal no menu (ex.: Gatos ou Bovinos), use os filtros da lateral e a busca no topo.
+2. **Entre como Maria** e adicione produtos ao carrinho. O desconto de 10% do plano Premium e o frete grátis aparecem sozinhos.
+3. **Finalize o pedido** e veja em **Minha conta → Meus pedidos**. Enquanto está "Recebido", o pedido pode ser cancelado.
+4. **Agende um banho** em **Banho e Tosa**: escolha o pet, o serviço, os adicionais, a data e o horário. Horários já ocupados aparecem bloqueados.
+5. **Conheça o Clube AgroPet:** compare os planos, escolha as rações e o dia de entrega.
+
+---
+
+## ✨ Funcionalidades
+
+### Para o cliente
+- **Loja por animal:** Cães, Gatos, Bovinos, Equinos, Aves, Suínos, Ovinos e Outros Pets (Peixes, Pássaros, Roedores)
+- Página de cada animal com **filtros** por categoria e faixa de preço, além de **busca** geral
+- **Carrinho** com cálculo de desconto e frete (grátis em compras acima de R$ 199)
+- **Finalização da compra** com endereço e forma de pagamento (Pix, cartão ou boleto)
+- **Clube AgroPet** com dois planos:
+  - **Básico** (R$ 19,90/mês): 5% de desconto e ração entregue todo mês
+  - **Premium** (R$ 39,90/mês): 10% de desconto, frete grátis em tudo e 1 banho grátis por mês
+- **Banho e Tosa:** serviços com preço por porte do pet, adicionais, horários livres em tempo real e nada aos domingos
+- **Minha conta:** pedidos (com cancelamento), agendamentos (com cancelamento), cadastro de pets, assinatura e dados pessoais
+
+### Para o administrador
+- **Painel** com faturamento, pedidos, próximos agendamentos e assinantes
+- **Produtos:** cadastrar, editar e excluir, com foto, estoque e selo (Oferta, Novo, Mais vendido)
+- **Pedidos e agendamentos:** acompanhar e mudar o status
+- **Assinaturas e clientes:** ver quem assina e cancelar assinaturas
+- **Configurar site:** textos e imagens da página inicial, ícones dos animais e valor do frete
+
+### Regras de segurança
+- Senhas guardadas com criptografia (**scrypt**), nunca em texto puro
+- Login por **token de sessão**: cada rota da API confere quem está pedindo
+- O cliente só vê e altera os próprios dados. O administrador não tem acesso à área de compras.
+- Estoque conferido no servidor. Dois clientes nunca conseguem o mesmo horário de banho, nem clicando ao mesmo tempo.
 
 ---
 
@@ -16,142 +75,31 @@ Além disso, existe uma **área de administração**, separada da loja. Nela é 
 
 | Parte | Tecnologia |
 |---|---|
-| Framework (front e back) | [Next.js](https://nextjs.org) |
-| Banco de dados | PostgreSQL no [Supabase](https://supabase.com) |
-| Acesso ao banco | [Prisma](https://www.prisma.io) |
-| Linguagem | JavaScript |
-| Estilo | CSS |
-| Hospedagem | [Vercel](https://vercel.com) |
+| Framework (front-end e back-end) | **Next.js** (JavaScript) |
+| Banco de dados | **PostgreSQL** no **Supabase** |
+| Acesso ao banco | **Prisma** (ORM) |
+| Estilo | CSS puro |
+| Hospedagem | **Vercel** (publica automaticamente a cada atualização no GitHub) |
+
+### Como as partes se conectam
+
+```
+ Navegador  ──►  Next.js na Vercel  ──►  Prisma  ──►  PostgreSQL no Supabase
+ (telas)         (páginas + API)                        (produtos, pedidos, clientes...)
+```
+
+- **Front-end:** as telas do site (`public/app.js` e `app/globals.css`)
+- **Back-end:** a API em `app/api/`, com 21 rotas (produtos, pedidos, agendamentos, login…). As regras do negócio ficam em `lib/`.
+- **Banco:** 14 tabelas, definidas em `prisma/schema.prisma`
+
+A documentação de todas as rotas da API está em **[API.md](API.md)**.
 
 ---
 
-## 🚀 Como rodar o projeto
+## 👩‍💻 Rodando o projeto
 
-Antes, instale o [Node.js](https://nodejs.org) (versão LTS) e o [Git](https://git-scm.com).
-
-**1. Baixe o projeto**
-
-```bash
-git clone https://github.com/isabelaschalanski/agropet-next.git
-cd agropet-next
-```
-
-**2. Instale as dependências**
-
-```bash
-npm install
-```
-
-**3. Crie o arquivo `.env`**
-
-Crie um arquivo chamado `.env` na pasta principal do projeto. Peça para quem cuida do Supabase as duas linhas com os endereços do banco. Elas são assim:
-
-```
-DATABASE_URL="postgresql://postgres.xxxx:SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
-DIRECT_URL="postgresql://postgres.xxxx:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
-```
-
-> 🔒 Esse arquivo tem a senha do banco. Mande para os colegas por mensagem privada, **nunca** pelo GitHub.
-
-**4. Prepare o Prisma**
-
-```bash
-npx prisma generate
-```
-
-**5. Rode o site**
-
-```bash
-npm run dev
-```
-
-Abra **http://localhost:3000** no navegador.
-
-O banco é **um só, na internet**, igual para todo mundo: no seu computador, no dos colegas e no site publicado. Produto ou imagem que alguém muda pelo painel do admin aparece para todos na hora.
+As instruções de instalação, banco de dados e publicação estão em **[DESENVOLVIMENTO.md](DESENVOLVIMENTO.md)**.
 
 ---
 
-## 🗄️ Banco de dados (Supabase)
-
-Só precisa fazer **uma vez**, e só **uma pessoa** faz:
-
-```bash
-npx prisma db push        # cria as tabelas no Supabase
-node prisma/seed.mjs      # coloca os produtos, usuários e pedidos de exemplo
-```
-
-> ⚠️ O `seed.mjs` **apaga o banco inteiro**, para todo mundo, inclusive o site publicado. Só rode se quiserem voltar tudo ao começo, e combine com a equipe antes.
-
-Se alguém mudar o `prisma/schema.prisma` (tabelas), essa pessoa roda `npx prisma db push` uma vez, e pronto. Não precisa do seed.
-
-### Cópia de segurança do catálogo
-
-```bash
-node prisma/exportar.mjs
-```
-
-Copia os produtos, as imagens e os textos do site que estão no banco para o `prisma/dados.json`. Faça commit e push depois. Se alguém rodar o seed, o catálogo volta do jeito que estava nessa cópia.
-
----
-
-## 👤 Usuários de teste
-
-| Tipo | Usuário | Senha |
-|---|---|---|
-| Administrador | `admin` | `123` |
-| Cliente (assinante Premium) | `maria@email.com` | `123` |
-| Cliente | `joao@email.com` | `123` |
-
----
-
-## 📁 Estrutura das pastas
-
-```
-agropet-next/
-├── app/
-│   ├── page.js          → página do site
-│   ├── layout.js        → estrutura geral (HTML)
-│   ├── globals.css      → estilos
-│   └── api/             → back-end (rotas da API)
-├── lib/                 → regras de negócio, login e banco
-├── prisma/
-│   ├── schema.prisma    → tabelas do banco
-│   ├── seed.mjs         → dados iniciais
-│   ├── exportar.mjs     → cópia de segurança do catálogo
-│   └── dados.json       → catálogo de produtos
-├── public/
-│   ├── app.js           → funcionamento do site (front-end)
-│   ├── img/             → imagens dos banners
-│   └── teste-api.html   → página de testes da API
-└── API.md               → documentação das rotas da API
-```
-
-Os testes da API ficam em **http://localhost:3000/teste-api.html** (com o site rodando).
-
----
-
-## 🤝 Trabalhando em equipe
-
-Antes de começar a mexer, pegue o que os outros enviaram:
-
-```bash
-git pull
-```
-
-Se no que veio tiver mudança no `package.json` ou no `prisma/schema.prisma`, rode também `npm install`.
-
-Depois de fazer suas mudanças:
-
-```bash
-git add .
-git commit -m "descreva o que mudou"
-git push
-```
-
-⚠️ **Não envie** o arquivo `.env`. Ele tem a senha do banco, e o `.gitignore` já impede que ele vá.
-
----
-
-## 🌐 Site publicado (Vercel)
-
-O site fica na Vercel, ligado a este repositório. **Todo `git push` na branch `main` publica a versão nova sozinho**, em 1 a 2 minutos. Antes de enviar, rode `npm run build`. Se der erro aqui, também dá na Vercel.
+Projeto desenvolvido por estudantes de Ciência da Computação da URI – Santo Ângelo (RS).

@@ -1,4 +1,4 @@
--- Rodar UMA vez no Supabase: SQL Editor → New query → colar → Run
+'-- Rodar UMA vez no Supabase: SQL Editor → New query → colar → Run
 -- (depois do  npx prisma db push, que cria as tabelas)
 --
 -- Liga o RLS (Row Level Security) em todas as tabelas. Sem nenhuma regra (policy),
