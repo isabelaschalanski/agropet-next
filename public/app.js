@@ -137,10 +137,10 @@ function executar(fn) { return Promise.resolve().then(fn).catch((e) => aviso('�
 const soData = (d) => (d ? String(d).slice(0, 10) : '');
 function assinaturaDaApi(a) {
     if (!a) return null;
-    return { plano: a.plano, itens: (a.itens || []).map(i => ({ id: i.produtoId, qtd: i.qtd })), diaEntrega: a.diaEntrega, pagamento: a.pagamento, desde: soData(a.desde), ativa: a.ativa };
+    return { plano: a.plano, itens: (a.itens || []).map(i => ({ id: i.produtoId, qtd: i.qtd })), diaEntrega: a.diaEntrega, pagamento: a.pagamento, desde: soData(a.desde), ativa: a.ativa, arquivada: !!a.arquivada };
 }
 function usuarioDaApi(u) {
-    return { id: u.id, nome: u.nome, email: u.email, telefone: u.telefone || '', criadoEm: soData(u.criadoEm), pets: u.pets || [], assinatura: assinaturaDaApi(u.assinatura) };
+    return { id: u.id, nome: u.nome, email: u.email, telefone: u.telefone || '', observacoes: u.observacoes || '', criadoEm: soData(u.criadoEm), pets: u.pets || [], assinatura: assinaturaDaApi(u.assinatura) };
 }
 function pedidoDaApi(p) {
     return { ...p, data: soData(p.data), itens: p.itens.map(i => ({ id: i.produtoId, nome: i.nome, preco: i.preco, qtd: i.qtd })) };
@@ -1301,30 +1301,131 @@ function proximaEntrega(dia) {
    GERENCIAMENTO (admin / 123)
    ========================================================= */
 let adminAba = 'painel';
-let buscaAdmin = '';
 
-const ABAS_ADMIN = [['painel', '📊', 'Painel'], ['produtos', '📦', 'Produtos'], ['pedidos', '🧾', 'Pedidos'], ['agendamentos', '🛁', 'Banho e Tosa'], ['assinaturas', '⭐', 'Assinaturas'], ['clientes', '👥', 'Clientes'], ['site', '🎨', 'Configurar site']];
+/* =========================================================
+   GERENCIAMENTO (área do admin)
+   ========================================================= */
+// Menu lateral, agrupado: [grupo, [[id, ícone, nome, subtítulo], ...]]
+const GRUPOS_ADMIN = [
+    ['Gerenciamento', [
+        ['painel', '📊', 'Painel', 'Gerencie sua loja de forma simples e eficiente.'],
+        ['produtos', '📦', 'Produtos', 'Catálogo, estoque e o que aparece na loja.'],
+        ['pedidos', '🧾', 'Pedidos', 'Acompanhe e despache as compras.'],
+        ['agendamentos', '🛁', 'Banho e Tosa', 'Agenda de banhos, remarcações e confirmações.'],
+        ['assinaturas', '⭐', 'Assinaturas', 'Assinantes do Clube AgroPet.'],
+    ]],
+    ['Cadastros', [['clientes', '👥', 'Clientes', 'Quem compra na AgroPet: contatos, pets e histórico.']]],
+    ['Personalização', [['site', '🎨', 'Configurar site', 'Textos, imagens, frete e dados de teste.']]],
+];
+const ABAS_ADMIN = GRUPOS_ADMIN.flatMap(g => g[1]);
 
+// Estado das telas do gerenciamento (abas, filtros, seleção)
+const ADM = {
+    periodo: 30,
+    pedidosAba: 'andamento', agAba: 'agendados', assAba: 'ativas',
+    busca: { pedidos: '', agendamentos: '', clientes: '', assinaturas: '' },
+    prod: { busca: '', animal: '', categoria: '', status: '', pagina: 1 },
+    sel: new Set(),
+    novoAg: null, editAg: null,
+};
+let buscaAdmin = ''; // (mantido por compatibilidade)
+const POR_PAGINA = 15;
+
+// ---------- etiquetas de status ----------
+const BADGE_PEDIDO = { 'Recebido': ['amarelo', '⏳'], 'Em separação': ['azul', '📦'], 'Enviado': ['azul', '🚚'], 'Entregue': ['verde', '✓'], 'Cancelado': ['vermelho', '✕'] };
+const BADGE_AGENDA = { 'Agendado': ['azul', '📅'], 'Concluído': ['verde', '✓'], 'Cancelado': ['vermelho', '✕'] };
+const PROXIMO_PEDIDO = { 'Recebido': ['Em separação', 'Separar'], 'Em separação': ['Enviado', 'Enviar'], 'Enviado': ['Entregue', 'Entregue ✓'] };
+function badge(texto, cor, icone = '') { return `<span class="badge b-${cor}">${icone ? `<i>${icone}</i>` : ''}${esc(texto)}</span>`; }
+function badgePedido(s) { const [c, i] = BADGE_PEDIDO[s] || ['cinza', '']; return badge(s, c, i); }
+function badgeAgenda(s) { const [c, i] = BADGE_AGENDA[s] || ['cinza', '']; return badge(s, c, i); }
+function badgeEstoque(n) { return n <= 5 ? badge(n + ' un.', 'vermelho') : n <= 10 ? badge(n + ' un.', 'amarelo') : `<span class="num-estoque">${n}</span>`; }
+const iconePet = (especie) => ({ Cachorro: '🐶', Gato: '🐱', Pássaro: '🐦', Peixe: '🐟', Roedor: '🐹' }[especie] || '🐾');
+const iniciais = (nome) => String(nome || '?').split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+const nomeCliente = (id) => (usuarioPor(id) || {}).nome || '—';
+
+// datas
+const isoDe = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function diasAtras(n) { const d = new Date(); d.setDate(d.getDate() - n); return isoDe(d); }
+const diaMes = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+
+// WhatsApp: link com mensagem pronta (o número vira só dígitos, com 55 do Brasil na frente)
+function linkWhats(telefone, texto) {
+    let n = String(telefone || '').replace(/\D/g, '');
+    if (!n) return '';
+    if (n.length <= 11) n = '55' + n;
+    return `https://wa.me/${n}?text=${encodeURIComponent(texto)}`;
+}
+function textoConfirmacao(a) {
+    const u = usuarioPor(a.clienteId) || {};
+    return `Olá, ${(u.nome || '').split(' ')[0]}! 🐾 Confirmando o ${servicoPor(a.servico).nome} do ${a.pet} na AgroPet em ${dataBR(a.data)} às ${a.hora}. ` +
+        `Valor: ${a.gratis ? 'grátis (Clube Premium)' : dinheiro(a.valor)}. Qualquer coisa, é só responder aqui. Até lá!`;
+}
+
+// ---------- números do painel ----------
+function vendasDoDia(iso) {
+    const loja = db.pedidos.filter(p => p.status !== 'Cancelado' && p.data === iso).reduce((s, p) => s + p.total, 0);
+    const banho = db.agendamentos.filter(a => a.status !== 'Cancelado' && a.data === iso && a.data <= hojeISO()).reduce((s, a) => s + a.valor, 0);
+    return { loja, banho, total: loja + banho };
+}
+function vendasPeriodo(de, ate) { // de/ate = dias atrás (inclusivo)
+    let loja = 0, banho = 0;
+    for (let i = ate; i >= de; i--) { const v = vendasDoDia(diasAtras(i)); loja += v.loja; banho += v.banho; }
+    return { loja, banho, total: loja + banho };
+}
+function assinantesAtivos() { return db.usuarios.filter(u => u.assinatura && u.assinatura.ativa); }
+function mensalidades() { return assinantesAtivos().reduce((s, u) => s + PLANOS[u.assinatura.plano].preco, 0); }
+
+/* ---------- tela base ---------- */
 function telaAdmin() {
     if (!adminLogado()) { ir('entrar'); return ''; }
     const novosPedidos = db.pedidos.filter(p => p.status === 'Recebido').length;
     const proximos = db.agendamentos.filter(a => a.status === 'Agendado' && a.data >= hojeISO()).length;
     const badges = { pedidos: novosPedidos, agendamentos: proximos };
-    const aba = ABAS_ADMIN.find(x => x[0] === adminAba);
+    const aba = ABAS_ADMIN.find(x => x[0] === adminAba) || ABAS_ADMIN[0];
+    const titulo = adminAba === 'painel'
+        ? `<div class="adm-ola"><span class="pata">🐾</span><div><h1>Bem-vindo ao seu painel!</h1><small>${aba[3]}</small></div></div>`
+        : `<div class="adm-ola"><span class="pata">${aba[1]}</span><div><h1>${aba[2]}</h1><small>${aba[3]}</small></div></div>`;
     return `
     <div class="adm">
+        <div class="adm-fundo" data-acao="admin-menu"></div>
         <aside class="adm-lat">
-            <div class="adm-logo">AgroPet<small>Gerenciamento</small></div>
-            ${ABAS_ADMIN.map(([id, ic, nome]) => `<button class="${adminAba === id ? 'ativo' : ''}" data-acao="admin-aba" data-aba="${id}">${ic} ${nome}${badges[id] ? `<span class="adm-badge">${badges[id]}</span>` : ''}</button>`).join('')}
+            <div class="adm-logo"><span class="pata">🐾</span>AgroPet<small>Gerenciamento</small></div>
+            ${GRUPOS_ADMIN.map(([grupo, abas]) => `
+                <div class="adm-grupo">${grupo}</div>
+                ${abas.map(([id, ic, nome]) => `<button class="${adminAba === id ? 'ativo' : ''}" data-acao="admin-aba" data-aba="${id}"><span class="ic">${ic}</span>${nome}${badges[id] ? `<span class="adm-badge">${badges[id]}</span>` : ''}</button>`).join('')}
+            `).join('')}
+            <div class="adm-espaco"></div>
+            ${ilustracaoPets()}
         </aside>
         <div class="adm-corpo">
             <header class="adm-topo">
-                <div><small>Gerenciamento da loja</small><h1>${aba[1]} ${aba[2]}</h1></div>
-                <div class="adm-user"><span>👤</span>admin<button class="btn btn-azul" data-acao="sair">↩ Sair</button></div>
+                <div class="adm-titulo">
+                    <button class="adm-menu-btn" data-acao="admin-menu" aria-label="Abrir menu">☰</button>
+                    ${titulo}
+                </div>
+                <div class="adm-user"><span>👤</span>admin<button class="btn btn-musgo" data-acao="sair">↩ Sair</button></div>
             </header>
             <section class="adm-conteudo" id="adminConteudo">${adminConteudo()}</section>
         </div>
-    </div>`;
+    </div>
+    <div class="adm-tip" id="admTip"></div>`;
+}
+
+// desenho discreto no pé do menu (cachorro e gato em traço)
+function ilustracaoPets() {
+    return `<svg class="adm-ilustra" viewBox="0 0 200 130" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M30 120 C26 92 34 70 58 66 C82 70 90 92 86 120"/>
+        <path d="M38 52 C30 40 32 22 46 18 C52 28 50 40 48 48"/><path d="M78 52 C86 40 84 22 70 18 C64 28 66 40 68 48"/>
+        <path d="M40 54 C40 38 76 38 76 54 C76 70 66 78 58 78 C50 78 40 70 40 54Z"/>
+        <circle cx="51" cy="54" r="1.6" fill="currentColor"/><circle cx="65" cy="54" r="1.6" fill="currentColor"/>
+        <path d="M55 63 L58 66 L61 63"/><path d="M58 66 L58 69 M54 71 C56 73 60 73 62 71"/>
+        <path d="M110 120 C106 98 112 84 132 82 C152 84 158 98 154 120"/>
+        <path d="M114 62 L112 40 L126 52"/><path d="M150 62 L152 40 L138 52"/>
+        <path d="M114 64 C114 50 150 50 150 64 C150 78 142 86 132 86 C122 86 114 78 114 64Z"/>
+        <path d="M124 64 C126 62 128 62 129 64"/><path d="M135 64 C136 62 138 62 140 64"/>
+        <path d="M130 71 L132 73 L134 71"/><path d="M118 72 L104 70 M118 76 L104 78 M146 72 L160 70 M146 76 L160 78"/>
+        <path d="M154 112 C172 112 178 98 170 90"/>
+    </svg>`;
 }
 
 function adminConteudo() {
@@ -1337,178 +1438,535 @@ function adminConteudo() {
         case 'clientes': return adminClientes();
         case 'site': return adminSite();
     }
+    return '';
+}
+function redesenharAdmin() {
+    const y = window.scrollY;
+    const c = $('#adminConteudo');
+    if (c && rotaAtual() === 'admin') { c.innerHTML = adminConteudo(); window.scrollTo(0, y); }
+    else renderizar();
 }
 
+/* =========================================================
+   PAINEL
+   ========================================================= */
 function adminPainel() {
-    const validos = db.pedidos.filter(p => p.status !== 'Cancelado');
-    const faturamento = validos.reduce((s, p) => s + p.total, 0);
+    const atual = vendasPeriodo(0, 29), anterior = vendasPeriodo(30, 59);
+    const cresc = anterior.total > 0 ? Math.round((atual.total - anterior.total) / anterior.total * 100) : null;
+    const aguardando = db.pedidos.filter(p => p.status === 'Recebido').length;
     const proximos = db.agendamentos.filter(a => a.status === 'Agendado' && a.data >= hojeISO()).sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora));
-    const assinantes = db.usuarios.filter(u => u.assinatura && u.assinatura.ativa);
-    const mensal = assinantes.reduce((s, u) => s + PLANOS[u.assinatura.plano].preco, 0);
+    const ass = assinantesAtivos();
     const baixo = db.produtos.filter(p => p.estoque <= 10).sort((a, b) => a.estoque - b.estoque);
-    return `
-    <div class="stats">
-        <div class="stat"><span class="ic">💰</span><small>Faturamento</small><strong>${dinheiro(faturamento)}</strong></div>
-        <div class="stat"><span class="ic">🧾</span><small>Pedidos</small><strong>${db.pedidos.length}</strong></div>
-        <div class="stat"><span class="ic">🛁</span><small>Agendamentos futuros</small><strong>${proximos.length}</strong></div>
-        <div class="stat"><span class="ic">⭐</span><small>Assinantes · ${dinheiro(mensal)}/mês</small><strong>${assinantes.length}</strong></div>
-    </div>
-    <div class="duas iguais">
-        <div class="caixa"><h2>Próximos banhos</h2>${proximos.length ? `<div class="tabela-wrap"><table>
-            ${proximos.slice(0, 6).map(a => `<tr><td>${dataBR(a.data)} ${a.hora}</td><td>${esc(a.pet)}</td><td>${servicoPor(a.servico).nome}</td></tr>`).join('')}
-        </table></div>` : '<p class="vazio">Nenhum agendamento.</p>'}</div>
-        <div class="caixa"><h2>Estoque baixo</h2>${baixo.length ? `<div class="tabela-wrap"><table>
-            ${baixo.slice(0, 6).map(p => `<tr><td>${esc(p.icone)} ${esc(p.nome)}</td><td style="color:${p.estoque <= 5 ? 'var(--vermelho)' : 'inherit'};font-weight:600">${p.estoque} un.</td></tr>`).join('')}
-        </table></div>` : '<p class="vazio">Tudo certo com o estoque.</p>'}</div>
-    </div>
-    <div class="caixa" style="margin-top:24px"><h2>Últimos pedidos</h2>${tabelaPedidos([...db.pedidos].reverse().slice(0, 5))}</div>`;
-}
 
-function adminProdutos() {
-    const b = buscaAdmin.toLowerCase();
-    const lista = db.produtos.filter(p => !b || p.nome.toLowerCase().includes(b) || p.categoria.toLowerCase().includes(b));
     return `
-    <div class="caixa">
-        <div class="barra-ferr">
-            <input id="buscaAdmin" placeholder="🔍 Buscar produto" value="${esc(buscaAdmin)}">
-            <button class="btn btn-azul" data-acao="novo-produto">+ Novo produto</button>
+    <div class="kpis">
+        <div class="kpi"><span class="kpi-ic">💰</span><div><small>Vendas · 30 dias</small><strong>${dinheiro(atual.total)}</strong>
+            <p>${cresc === null ? 'Loja + Banho e Tosa' : `<b class="${cresc >= 0 ? 'sobe' : 'desce'}">${cresc >= 0 ? '↑' : '↓'} ${Math.abs(cresc)}%</b> vs. 30 dias anteriores`}</p></div></div>
+        <div class="kpi"><span class="kpi-ic">🛍️</span><div><small>Pedidos</small><strong>${db.pedidos.length}</strong><p>${aguardando ? `<b class="alerta">${aguardando} aguardando separação</b>` : 'Nenhum aguardando'}</p></div></div>
+        <div class="kpi"><span class="kpi-ic">📅</span><div><small>Agendamentos futuros</small><strong>${proximos.length}</strong><p>${proximos[0] ? `Próximo: ${diaMes(proximos[0].data)} às ${proximos[0].hora}` : 'Agenda livre'}</p></div></div>
+        <div class="kpi"><span class="kpi-ic">⭐</span><div><small>Assinantes ativos</small><strong>${ass.length}</strong><p>Mensalidades: ${dinheiro(mensalidades())}/mês</p></div></div>
+    </div>
+
+    <div class="adm-linha l-graf">
+        <div class="caixa">
+            <div class="caixa-topo"><h2>📈 Faturamento</h2>
+                <div class="seg">${[7, 30].map(n => `<button class="${ADM.periodo === n ? 'ativo' : ''}" data-acao="adm-periodo" data-n="${n}">${n} dias</button>`).join('')}</div>
+            </div>
+            ${graficoBarras(ADM.periodo)}
         </div>
-        <div class="tabela-wrap"><table>
-            <tr><th></th><th>Produto</th><th>Animal</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Ativo</th><th></th></tr>
-            ${lista.map(p => `<tr>
-                <td><span class="mini-ic cor-${p.cor}">${imgProduto(p)}</span></td>
-                <td><strong>${esc(p.nome)}</strong>${p.selo ? `<br><small style="color:var(--azul-escuro)">${esc(p.selo)}</small>` : ''}</td>
-                <td>${animalPor(p.animal).nome}</td>
-                <td>${esc(p.categoria)}</td>
-                <td>${dinheiro(p.preco)}</td>
-                <td style="color:${p.estoque <= 5 ? 'var(--vermelho)' : 'inherit'};font-weight:600">${p.estoque}</td>
-                <td><button class="interruptor ${p.ativo ? 'on' : ''}" data-acao="ativar-produto" data-id="${p.id}" title="Mostrar na loja"></button></td>
-                <td><div class="acoes"><button class="btn btn-borda btn-peq" data-acao="editar-produto" data-id="${p.id}">Editar</button><button class="btn btn-perigo btn-peq" data-acao="excluir-produto" data-id="${p.id}">Excluir</button></div></td>
-            </tr>`).join('')}
-        </table></div>
-        ${!lista.length ? '<p class="vazio">Nenhum produto encontrado.</p>' : ''}
+        <div class="caixa">
+            <div class="caixa-topo"><h2>🥧 De onde vem a receita</h2></div>
+            ${graficoRosca()}
+        </div>
+    </div>
+
+    <div class="adm-linha">
+        <div class="caixa">
+            <div class="caixa-topo"><h2>🐾 Próximos banhos</h2><a class="ver" data-acao="admin-aba" data-aba="agendamentos">Ver agenda →</a></div>
+            ${proximos.length ? `<div class="lista-adm">${proximos.slice(0, 4).map(a => `
+                <div class="li-adm">
+                    <span class="avatar pet">${iconePet(a.especie)}</span>
+                    <div class="li-txt"><small>${dataBR(a.data)} · ${a.hora}</small><b>${esc(a.pet)}</b><span>${servicoPor(a.servico).nome}</span></div>
+                    ${badgeAgenda(a.status)}
+                </div>`).join('')}</div>` : '<p class="vazio">Nenhum banho marcado.</p>'}
+        </div>
+        <div class="caixa">
+            <div class="caixa-topo"><h2>📦 Alertas de estoque</h2><a class="ver" data-acao="adm-ver-estoque">Ver produtos →</a></div>
+            ${baixo.length ? `<div class="lista-adm">${baixo.slice(0, 4).map(p => `
+                <div class="li-adm">
+                    <span class="avatar prod cor-${p.cor}">${imgProduto(p)}</span>
+                    <div class="li-txt"><b>${esc(p.nome)}</b><span>${p.estoque <= 5 ? 'Estoque crítico' : 'Estoque baixo'} · ${animalPor(p.animal).nome}</span></div>
+                    ${badgeEstoque(p.estoque)}
+                </div>`).join('')}</div>` : '<p class="vazio">Tudo certo com o estoque. ✓</p>'}
+        </div>
+    </div>
+
+    <div class="adm-linha l-rank">
+        <div class="caixa">
+            <div class="caixa-topo"><h2>🏆 Mais vendidos · 30 dias</h2></div>
+            ${rankingVendas()}
+        </div>
+        <div class="caixa">
+            <div class="caixa-topo"><h2>🧾 Últimos pedidos</h2><a class="ver" data-acao="admin-aba" data-aba="pedidos">Ver todos os pedidos →</a></div>
+            ${tabelaPedidosResumo(db.pedidos.slice(0, 5))}
+        </div>
     </div>`;
 }
 
-function formProduto(p) {
-    const novo = !p;
-    p = p || { nome: '', animal: 'caes', categoria: 'Ração', preco: '', estoque: '', icone: '🐾', cor: 'amarelo', selo: '', descricao: '', imagem: '', ativo: true };
-    const grupos = animalPor(p.animal).grupos;
-    abrirModal(`
-        <div class="modal-topo"><h2>${novo ? 'Novo produto' : 'Editar produto'}</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
-        <form class="form" id="formProduto" data-id="${novo ? '' : p.id}">
-            <span style="font-weight:500">Foto do produto</span>
-            <div class="foto-campo">
-                <div class="foto-prev cor-${p.cor}" id="fotoPrev">${imgProduto(p)}</div>
-                <div class="botoes">
-                    <label class="btn btn-borda btn-peq">📷 ${p.imagem ? 'Trocar foto' : 'Escolher foto'}<input type="file" accept="image/*" id="inputFoto" hidden></label>
-                    <button type="button" class="btn btn-perigo btn-peq" data-acao="remover-foto" id="btnRemoverFoto" style="${p.imagem ? '' : 'display:none'}">Remover foto</button>
-                    <small>JPG ou PNG. Sem foto, aparece o emoji.</small>
-                </div>
-            </div>
-            <input type="hidden" name="imagem" id="campoImagem" value="${esc(p.imagem || '')}">
-            <label>Nome<input name="nome" value="${esc(p.nome)}" required></label>
-            <div class="form-linha">
-                <label>Animal<select name="animal" id="selAnimal">${ANIMAIS.map(a => `<option value="${a.id}" ${a.id === p.animal ? 'selected' : ''}>${a.icone} ${a.nome}</option>`).join('')}</select></label>
-                <label>Categoria<select name="categoria" id="selCategoria">${grupos.map(g => `<option ${g.t === p.categoria ? 'selected' : ''}>${esc(g.t)}</option>`).join('')}</select></label>
-            </div>
-            <div class="form-linha">
-                <label>Preço (R$)<input name="preco" type="number" step="0.01" min="0" value="${p.preco}" required></label>
-                <label>Estoque<input name="estoque" type="number" min="0" step="1" value="${p.estoque}" required></label>
-            </div>
-            <div class="form-linha">
-                <label>Ícone (emoji)<input name="icone" value="${esc(p.icone)}" maxlength="4" required></label>
-                <label>Cor do fundo<select name="cor">${CORES.map(c => `<option ${c === p.cor ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
-            </div>
-            <label>Selo <small style="color:var(--suave);font-weight:400">(opcional — ex.: Oferta, Novo)</small><input name="selo" value="${esc(p.selo)}"></label>
-            <label>Descrição<textarea name="descricao" rows="2">${esc(p.descricao)}</textarea></label>
-            <div class="modal-acoes">
-                <button type="button" class="btn btn-borda" data-acao="fechar-modal">Cancelar</button>
-                <button class="btn btn-azul">${novo ? 'Cadastrar produto' : 'Salvar alterações'}</button>
-            </div>
-        </form>`);
+// Gráfico de barras: vendas por dia (Loja + Banho e Tosa)
+function graficoBarras(n) {
+    const dias = Array.from({ length: n }, (_, i) => diasAtras(n - 1 - i));
+    const valores = dias.map(d => vendasDoDia(d));
+    const max = Math.max(...valores.map(v => v.total), 1);
+    const topo = Math.ceil(max / 50) * 50 || 50;
+    const W = 640, H = 220, esq = 52, dir = 8, cima = 12, baixo = 26;
+    const largura = (W - esq - dir) / n, barra = Math.max(4, Math.min(34, largura - (n > 10 ? 3 : 12)));
+    const y = (v) => cima + (H - cima - baixo) * (1 - v / topo);
+    const linhas = [0, 0.5, 1].map(f => `<line x1="${esq}" x2="${W - dir}" y1="${y(topo * f)}" y2="${y(topo * f)}" class="grade-l"/><text x="${esq - 8}" y="${y(topo * f) + 4}" class="eixo" text-anchor="end">${(topo * f).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</text>`).join('');
+    const total = valores.reduce((s, v) => s + v.total, 0);
+    const barras = dias.map((d, i) => {
+        const v = valores[i], x = esq + i * largura + (largura - barra) / 2, h = (H - cima - baixo) - (y(v.total) - cima);
+        const r = Math.min(4, barra / 2, h);
+        const caminho = h > 0 ? `M${x},${y(0)} V${y(v.total) + r} Q${x},${y(v.total)} ${x + r},${y(v.total)} H${x + barra - r} Q${x + barra},${y(v.total)} ${x + barra},${y(v.total) + r} V${y(0)} Z` : '';
+        const rotulo = (n <= 7 || i % 5 === 0 || i === n - 1) ? `<text x="${x + barra / 2}" y="${H - 8}" class="eixo" text-anchor="middle">${diaMes(d)}</text>` : '';
+        const tip = `${dataBR(d)}<br><b>${dinheiro(v.total)}</b><br>Loja ${dinheiro(v.loja)} · Banho ${dinheiro(v.banho)}`;
+        return `${caminho ? `<path d="${caminho}" class="barra-v"/>` : ''}${rotulo}<rect x="${esq + i * largura}" y="${cima}" width="${largura}" height="${H - cima - baixo}" class="alvo" data-tip="${esc(tip)}"/>`;
+    }).join('');
+    return `<div class="grafico">
+        <p class="graf-resumo">${dinheiro(total)} <span>em ${n} dias · Loja + Banho e Tosa</span></p>
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos ${n} dias">${linhas}<line x1="${esq}" x2="${W - dir}" y1="${y(0)}" y2="${y(0)}" class="base-l"/>${barras}</svg>
+    </div>`;
 }
 
-async function salvarProduto(f) {
-    const d = Object.fromEntries(new FormData(f));
-    const dados = { nome: d.nome.trim(), animal: d.animal, categoria: d.categoria, preco: parseFloat(d.preco), estoque: parseInt(d.estoque, 10), icone: d.icone.trim(), cor: d.cor, selo: d.selo.trim(), descricao: d.descricao.trim(), imagem: d.imagem || '' };
-    try {
-        if (f.dataset.id) await api('PUT', '/produtos/' + f.dataset.id, dados);
-        else await api('POST', '/produtos', dados);
-        fecharModal();
-        await sincronizar();
-        aviso(f.dataset.id ? 'Produto atualizado ✓' : 'Produto cadastrado ✓');
-    } catch (e) { aviso('⚠️ ' + e.message); }
+// Rosca: Loja x Banho e Tosa x Assinaturas (30 dias)
+const CORES_RECEITA = ['#a24e1f', '#5f9e3f', '#3a78b5']; // terracota, verde, azul (paleta conferida para daltonismo)
+function graficoRosca() {
+    const v = vendasPeriodo(0, 29);
+    const partes = [['Loja (produtos)', v.loja], ['Banho e Tosa', v.banho], ['Assinaturas', mensalidades()]];
+    const total = partes.reduce((s, p) => s + p[1], 0);
+    if (!total) return '<p class="vazio">Ainda não há vendas nos últimos 30 dias.</p>';
+    const R = 62, C = 2 * Math.PI * R, gap = partes.filter(p => p[1] > 0).length > 1 ? 3 : 0;
+    let acum = 0;
+    const arcos = partes.map(([nome, val], i) => {
+        if (!val) return '';
+        const comp = val / total * C;
+        const s = `<circle r="${R}" cx="90" cy="90" fill="none" stroke="${CORES_RECEITA[i]}" stroke-width="24" stroke-dasharray="${Math.max(comp - gap, 0.1)} ${C}" stroke-dashoffset="${-acum}" transform="rotate(-90 90 90)" class="fatia" data-tip="${esc(`${nome}<br><b>${dinheiro(val)}</b> · ${Math.round(val / total * 100)}%`)}"/>`;
+        acum += comp; return s;
+    }).join('');
+    return `<div class="rosca">
+        <svg viewBox="0 0 180 180" role="img" aria-label="Receita dos últimos 30 dias por origem">${arcos}
+            <text x="90" y="86" text-anchor="middle" class="rosca-v">${dinheiro(total).replace(',00', '')}</text><text x="90" y="104" text-anchor="middle" class="eixo">30 dias</text></svg>
+        <ul class="legenda">${partes.map(([nome, val], i) => `<li><i style="background:${CORES_RECEITA[i]}"></i><span>${nome}</span><b>${dinheiro(val)}</b><small>${Math.round(val / total * 100)}%</small></li>`).join('')}</ul>
+    </div>
+    <p class="graf-nota">Assinaturas = mensalidades ativas de um mês.</p>`;
 }
 
-function tabelaPedidos(lista, editavel = false) {
-    if (!lista.length) return '<p class="vazio">Nenhum pedido.</p>';
-    return `<div class="tabela-wrap"><table>
-        <tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Status</th></tr>
-        ${lista.map(p => `<tr>
-            <td>#${p.id}</td><td>${dataBR(p.data)}</td><td>${esc((usuarioPor(p.clienteId) || {}).nome || '—')}</td>
-            <td>${p.itens.map(i => `${i.qtd}× ${esc(i.nome)}`).join('<br>')}</td>
-            <td><strong>${dinheiro(p.total)}</strong></td><td>${p.pagamento}</td>
-            <td>${editavel ? `<select data-acao-change="status-pedido" data-id="${p.id}">${STATUS_PEDIDO.map(s => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select>` : `<span class="status st-${p.status.replace(' ', '-')}">${p.status}</span>`}</td>
-        </tr>`).join('')}
+// Ranking: produtos mais vendidos e serviço mais pedido nos últimos 30 dias
+function rankingVendas() {
+    const desde = diasAtras(29);
+    const qtd = {};
+    db.pedidos.filter(p => p.status !== 'Cancelado' && p.data >= desde).forEach(p => p.itens.forEach(i => { qtd[i.nome] = (qtd[i.nome] || 0) + i.qtd; }));
+    const top = Object.entries(qtd).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const serv = {};
+    db.agendamentos.filter(a => a.status !== 'Cancelado' && a.data >= desde).forEach(a => { serv[a.servico] = (serv[a.servico] || 0) + 1; });
+    const topServ = Object.entries(serv).sort((a, b) => b[1] - a[1])[0];
+    if (!top.length && !topServ) return '<p class="vazio">Nenhuma venda nos últimos 30 dias.</p>';
+    const max = top.length ? top[0][1] : 1;
+    return `<ol class="ranking">${top.map(([nome, n], i) => `
+        <li><span class="pos">${i + 1}</span><div class="rk"><div class="rk-nome"><span>${esc(nome)}</span><b>${n} un.</b></div><div class="rk-barra"><i style="width:${Math.max(6, n / max * 100)}%"></i></div></div></li>`).join('')}
+    </ol>
+    ${topServ ? `<p class="rk-serv">🛁 Serviço mais pedido: <b>${servicoPor(topServ[0]).nome}</b> (${topServ[1]}×)</p>` : ''}`;
+}
+
+function tabelaPedidosResumo(lista) {
+    if (!lista.length) return '<p class="vazio">Nenhum pedido ainda.</p>';
+    return `<div class="tabela-wrap"><table class="t-adm">
+        <tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Valor</th><th>Status</th></tr>
+        ${lista.map(p => `<tr class="clicavel" data-acao="adm-ver-pedido" data-id="${p.id}"><td><b>#${String(p.id).padStart(3, '0')}</b></td><td>${esc(nomeCliente(p.clienteId))}</td><td>${dataBR(p.data)}</td><td><b>${dinheiro(p.total)}</b></td><td>${badgePedido(p.status)}</td></tr>`).join('')}
     </table></div>`;
 }
 
+/* =========================================================
+   PRODUTOS
+   ========================================================= */
+function produtosFiltrados() {
+    const f = ADM.prod, b = f.busca.toLowerCase();
+    return db.produtos.filter(p =>
+        (!b || p.nome.toLowerCase().includes(b) || p.categoria.toLowerCase().includes(b)) &&
+        (!f.animal || p.animal === f.animal) &&
+        (!f.categoria || p.categoria === f.categoria) &&
+        (!f.status || (f.status === 'visiveis' ? p.ativo : f.status === 'escondidos' ? !p.ativo : p.estoque <= 10)));
+}
+function adminProdutos() {
+    const f = ADM.prod;
+    const lista = produtosFiltrados();
+    const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+    f.pagina = Math.min(f.pagina, paginas);
+    const pag = lista.slice((f.pagina - 1) * POR_PAGINA, f.pagina * POR_PAGINA);
+    const cats = [...new Set(db.produtos.filter(p => !f.animal || p.animal === f.animal).map(p => p.categoria))].sort();
+    for (const id of [...ADM.sel]) if (!produtoPor(id)) ADM.sel.delete(id);
+    const todosMarcados = pag.length && pag.every(p => ADM.sel.has(p.id));
+    return `
+    <div class="caixa">
+        <div class="ferramentas">
+            <input class="busca-adm" data-adm-busca="prod" placeholder="🔍 Buscar produto" value="${esc(f.busca)}">
+            <select data-adm-filtro="animal"><option value="">Todos os animais</option>${ANIMAIS.map(a => `<option value="${a.id}" ${f.animal === a.id ? 'selected' : ''}>${a.icone} ${a.nome}</option>`).join('')}</select>
+            <select data-adm-filtro="categoria"><option value="">Todas as categorias</option>${cats.map(c => `<option ${f.categoria === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+            <select data-adm-filtro="status">${[['', 'Todos'], ['visiveis', 'Na loja'], ['escondidos', 'Escondidos'], ['estoque', 'Estoque baixo']].map(([v, t]) => `<option value="${v}" ${f.status === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+            <button class="btn btn-musgo" data-acao="novo-produto">+ Novo produto</button>
+        </div>
+        ${ADM.sel.size ? `<div class="barra-lote"><b>${ADM.sel.size} selecionado${ADM.sel.size > 1 ? 's' : ''}</b>
+            <button class="btn btn-borda btn-peq" data-acao="adm-lote" data-lote="mostrar">👁️ Mostrar na loja</button>
+            <button class="btn btn-borda btn-peq" data-acao="adm-lote" data-lote="esconder">🙈 Esconder</button>
+            <button class="btn btn-perigo btn-peq" data-acao="adm-lote" data-lote="excluir">🗑️ Excluir</button>
+            <button class="link-btn" data-acao="adm-lote-limpar">Limpar seleção</button></div>` : ''}
+        ${pag.length ? `<div class="tabela-wrap"><table class="t-adm">
+            <tr><th class="ck"><input type="checkbox" data-adm-check="pagina" ${todosMarcados ? 'checked' : ''} aria-label="Selecionar a página"></th><th></th><th>Produto</th><th>Animal</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Na loja</th><th></th></tr>
+            ${pag.map(p => `<tr class="${ADM.sel.has(p.id) ? 'marcada' : ''}">
+                <td class="ck"><input type="checkbox" data-adm-check="${p.id}" ${ADM.sel.has(p.id) ? 'checked' : ''} aria-label="Selecionar ${esc(p.nome)}"></td>
+                <td><span class="mini-ic cor-${p.cor}">${imgProduto(p)}</span></td>
+                <td><b>${esc(p.nome)}</b>${p.selo ? `<br>${badge(p.selo, 'caramelo')}` : ''}</td>
+                <td>${animalPor(p.animal).nome}</td>
+                <td>${esc(p.categoria)}</td>
+                <td><b>${dinheiro(p.preco)}</b></td>
+                <td>${badgeEstoque(p.estoque)}</td>
+                <td><button class="interruptor ${p.ativo ? 'on' : ''}" data-acao="ativar-produto" data-id="${p.id}" title="${p.ativo ? 'Visível na loja' : 'Escondido da loja'}"></button></td>
+                <td><div class="acoes"><button class="ic-btn" data-acao="editar-produto" data-id="${p.id}" title="Editar">✏️</button><button class="ic-btn perigo" data-acao="excluir-produto" data-id="${p.id}" title="Excluir">🗑️</button></div></td>
+            </tr>`).join('')}
+        </table></div>` : '<p class="vazio">Nenhum produto encontrado com esses filtros.</p>'}
+        ${paginacao(lista.length, f.pagina, paginas)}
+    </div>`;
+}
+function paginacao(total, atual, paginas) {
+    if (!total) return '';
+    const de = (atual - 1) * POR_PAGINA + 1, ate = Math.min(total, atual * POR_PAGINA);
+    const nums = [];
+    for (let i = 1; i <= paginas; i++) if (i === 1 || i === paginas || Math.abs(i - atual) <= 1) nums.push(i); else if (nums[nums.length - 1] !== '…') nums.push('…');
+    return `<div class="paginacao"><span>Mostrando ${de}–${ate} de ${total}</span>
+        ${paginas > 1 ? `<div><button data-acao="adm-pagina" data-p="${atual - 1}" ${atual === 1 ? 'disabled' : ''}>‹</button>
+        ${nums.map(n => n === '…' ? '<span class="ret">…</span>' : `<button class="${n === atual ? 'ativo' : ''}" data-acao="adm-pagina" data-p="${n}">${n}</button>`).join('')}
+        <button data-acao="adm-pagina" data-p="${atual + 1}" ${atual === paginas ? 'disabled' : ''}>›</button></div>` : ''}</div>`;
+}
+
+/* =========================================================
+   PEDIDOS
+   ========================================================= */
+const ABAS_PEDIDOS = [
+    ['andamento', 'Em andamento', p => !p.arquivado && !['Entregue', 'Cancelado'].includes(p.status)],
+    ['historico', 'Histórico', p => !p.arquivado && ['Entregue', 'Cancelado'].includes(p.status)],
+    ['arquivados', 'Arquivados', p => p.arquivado],
+];
+function abasLista(abas, atual, lista, acao) {
+    return `<div class="abas-adm">${abas.map(([id, nome, f]) => `<button class="${atual === id ? 'ativo' : ''}" data-acao="${acao}" data-aba="${id}">${nome}<span>${lista.filter(f).length}</span></button>`).join('')}</div>`;
+}
 function adminPedidos() {
-    return `<div class="caixa">${tabelaPedidos([...db.pedidos].reverse(), true)}
-        <p class="nota" style="margin-top:14px">Ao cancelar um pedido, os itens voltam para o estoque.</p></div>`;
+    const aba = ABAS_PEDIDOS.find(a => a[0] === ADM.pedidosAba);
+    const b = ADM.busca.pedidos.toLowerCase().replace('#', '');
+    const lista = db.pedidos.filter(aba[2]).filter(p => !b || String(p.id).includes(b) || nomeCliente(p.clienteId).toLowerCase().includes(b));
+    const textoVazio = { andamento: 'Nenhum pedido esperando ação. 🎉', historico: 'Nenhum pedido entregue ou cancelado.', arquivados: 'Nenhum pedido arquivado.' }[aba[0]];
+    return `
+    <div class="caixa">
+        <div class="ferramentas">${abasLista(ABAS_PEDIDOS, ADM.pedidosAba, db.pedidos, 'adm-aba-pedidos')}
+            <input class="busca-adm" data-adm-busca="pedidos" placeholder="🔍 Nº do pedido ou cliente" value="${esc(ADM.busca.pedidos)}"></div>
+        ${lista.length ? `<div class="tabela-wrap"><table class="t-adm">
+            <tr><th>Pedido</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Status</th><th></th></tr>
+            ${lista.map(p => {
+                const prox = PROXIMO_PEDIDO[p.status];
+                const nItens = p.itens.reduce((s, i) => s + i.qtd, 0);
+                return `<tr>
+                <td><b>#${String(p.id).padStart(3, '0')}</b></td><td>${dataBR(p.data)}</td><td>${esc(nomeCliente(p.clienteId))}</td>
+                <td title="${esc(p.itens.map(i => `${i.qtd}× ${i.nome}`).join(', '))}">${nItens} ${nItens === 1 ? 'item' : 'itens'}<br><small class="suave">${esc(p.itens[0] ? p.itens[0].nome : '')}${p.itens.length > 1 ? ' e +' + (p.itens.length - 1) : ''}</small></td>
+                <td><b>${dinheiro(p.total)}</b><br><small class="suave">${esc(p.pagamento)}</small></td>
+                <td>${badgePedido(p.status)}${p.observacao ? ' <span title="Tem observação">📝</span>' : ''}</td>
+                <td><div class="acoes">
+                    ${prox && !p.arquivado ? `<button class="btn btn-musgo btn-peq" data-acao="adm-avancar-pedido" data-id="${p.id}">${prox[1]}</button>` : ''}
+                    <button class="btn btn-borda btn-peq" data-acao="adm-ver-pedido" data-id="${p.id}">Ver</button>
+                    ${ADM.pedidosAba === 'historico' ? `<button class="ic-btn" data-acao="adm-arquivar-pedido" data-id="${p.id}" title="Arquivar">🗄️</button>` : ''}
+                    ${ADM.pedidosAba === 'arquivados' ? `<button class="ic-btn" data-acao="adm-desarquivar-pedido" data-id="${p.id}" title="Voltar ao histórico">↩️</button><button class="ic-btn perigo" data-acao="adm-excluir-pedido" data-id="${p.id}" title="Excluir de vez">🗑️</button>` : ''}
+                </div></td></tr>`; }).join('')}
+        </table></div>` : `<p class="vazio">${b ? 'Nenhum pedido encontrado.' : textoVazio}</p>`}
+        ${ADM.pedidosAba === 'historico' && lista.length ? `<div class="rodape-lista"><button class="btn btn-borda btn-peq" data-acao="adm-arquivar-todos-pedidos">🗄️ Arquivar todos do histórico</button></div>` : ''}
+        <p class="nota" style="margin-top:14px">Arquivados saem das listas, mas continuam contando no faturamento. Ao cancelar um pedido, os itens voltam para o estoque.</p>
+    </div>`;
 }
 
+function verPedido(id) {
+    const p = db.pedidos.find(x => x.id === id);
+    if (!p) return;
+    const u = usuarioPor(p.clienteId) || {};
+    const zap = linkWhats(u.telefone, `Olá, ${(u.nome || '').split(' ')[0]}! Aqui é da AgroPet 🐾 Sobre o seu pedido #${String(p.id).padStart(3, '0')}: `);
+    abrirModal(`
+        <div class="modal-topo"><h2>Pedido #${String(p.id).padStart(3, '0')} ${badgePedido(p.status)}</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
+        <div class="ficha">
+            <div class="ficha-bloco"><small>Cliente</small><b>${esc(u.nome || '—')}</b><span>${esc(u.email || '')}${u.telefone ? ' · ' + esc(u.telefone) : ''}</span>
+                ${zap ? `<a class="link-zap" href="${zap}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>` : ''}</div>
+            <div class="ficha-bloco"><small>Entrega</small><b>${esc(p.endereco || '—')}</b><span>Pedido em ${dataBR(p.data)} · ${esc(p.pagamento)}</span></div>
+        </div>
+        <table class="t-adm t-itens">
+            <tr><th>Item</th><th>Qtd</th><th>Preço</th><th>Subtotal</th></tr>
+            ${p.itens.map(i => `<tr><td>${esc(i.nome)}</td><td>${i.qtd}</td><td>${dinheiro(i.preco)}</td><td>${dinheiro(i.preco * i.qtd)}</td></tr>`).join('')}
+            <tr class="tot"><td colspan="3">Subtotal</td><td>${dinheiro(p.subtotal)}</td></tr>
+            ${p.desconto ? `<tr class="tot"><td colspan="3">Desconto do Clube</td><td>− ${dinheiro(p.desconto)}</td></tr>` : ''}
+            <tr class="tot"><td colspan="3">Frete</td><td>${p.frete ? dinheiro(p.frete) : 'Grátis'}</td></tr>
+            <tr class="tot total"><td colspan="3">Total</td><td>${dinheiro(p.total)}</td></tr>
+        </table>
+        <form class="form" id="formObsPedido" data-id="${p.id}">
+            <label>Observação interna <small class="suave">(só a loja vê)</small><textarea name="observacao" rows="2" placeholder="Ex.: entregar depois das 14h">${esc(p.observacao || '')}</textarea></label>
+            <button class="btn btn-borda btn-peq" style="align-self:flex-start">Salvar observação</button>
+        </form>
+        <div class="status-linha"><small>Mudar status:</small>${STATUS_PEDIDO.map(s => `<button class="chip-st ${s === p.status ? 'ativo' : ''}" data-acao="adm-status-pedido" data-id="${p.id}" data-status="${s}">${s}</button>`).join('')}</div>
+        <div class="modal-acoes">
+            <button class="btn btn-borda" data-acao="adm-imprimir" data-tipo="etiqueta" data-id="${p.id}">🏷️ Etiqueta</button>
+            <button class="btn btn-borda" data-acao="adm-imprimir" data-tipo="comprovante" data-id="${p.id}">🖨️ Comprovante</button>
+            <button class="btn btn-musgo" data-acao="fechar-modal">Fechar</button>
+        </div>`);
+}
+
+// Imprime comprovante ou etiqueta (abre a janela de impressão do navegador)
+function imprimirPedido(id, tipo) {
+    const p = db.pedidos.find(x => x.id === id);
+    const u = usuarioPor(p.clienteId) || {};
+    const num = String(p.id).padStart(3, '0');
+    const estilo = `body{font-family:Arial,sans-serif;color:#3f2d24;margin:24px} h1{font-size:22px;margin:0 0 4px;color:#6e4b3a} table{width:100%;border-collapse:collapse;margin-top:14px} td,th{padding:6px 4px;border-bottom:1px solid #ddd;text-align:left;font-size:13px} .r{text-align:right} .tot td{font-weight:bold;border:none} small{color:#8a7666} .etq{border:2px dashed #6e4b3a;border-radius:10px;padding:18px 22px;width:360px} .etq h2{margin:0 0 10px;font-size:15px;color:#8a7666;text-transform:uppercase;letter-spacing:1px} .etq b{font-size:20px} .etq p{margin:6px 0;font-size:15px}`;
+    const corpo = tipo === 'etiqueta'
+        ? `<div class="etq"><h2>🐾 AgroPet · Pedido #${num}</h2><p>Para:</p><b>${esc(u.nome || '')}</b><p>${esc(p.endereco)}</p>${u.telefone ? `<p>Tel.: ${esc(u.telefone)}</p>` : ''}<p><small>${p.itens.reduce((s, i) => s + i.qtd, 0)} itens · ${dataBR(p.data)}</small></p></div>`
+        : `<h1>AgroPet 🐾</h1><small>Comprovante do pedido #${num} · ${dataBR(p.data)}</small>
+           <p><b>Cliente:</b> ${esc(u.nome || '')} ${u.email ? '· ' + esc(u.email) : ''}<br><b>Entrega:</b> ${esc(p.endereco)}<br><b>Pagamento:</b> ${esc(p.pagamento)} · <b>Status:</b> ${esc(p.status)}</p>
+           <table><tr><th>Item</th><th>Qtd</th><th class="r">Preço</th><th class="r">Subtotal</th></tr>
+           ${p.itens.map(i => `<tr><td>${esc(i.nome)}</td><td>${i.qtd}</td><td class="r">${dinheiro(i.preco)}</td><td class="r">${dinheiro(i.preco * i.qtd)}</td></tr>`).join('')}
+           <tr class="tot"><td colspan="3" class="r">Subtotal</td><td class="r">${dinheiro(p.subtotal)}</td></tr>
+           ${p.desconto ? `<tr class="tot"><td colspan="3" class="r">Desconto</td><td class="r">− ${dinheiro(p.desconto)}</td></tr>` : ''}
+           <tr class="tot"><td colspan="3" class="r">Frete</td><td class="r">${p.frete ? dinheiro(p.frete) : 'Grátis'}</td></tr>
+           <tr class="tot"><td colspan="3" class="r">Total</td><td class="r">${dinheiro(p.total)}</td></tr></table>
+           <p style="margin-top:30px"><small>AgroPet · Santo Ângelo – RS · (55) 3312-0000</small></p>`;
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+    document.body.appendChild(fr);
+    const doc = fr.contentWindow.document;
+    doc.open(); doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido #${num}</title><style>${estilo}</style></head><body>${corpo}</body></html>`); doc.close();
+    setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(() => fr.remove(), 1000); }, 200);
+}
+
+/* =========================================================
+   BANHO E TOSA
+   ========================================================= */
+const ABAS_AGENDA = [
+    ['agendados', 'Agendados', a => !a.arquivado && a.status === 'Agendado'],
+    ['historico', 'Histórico', a => !a.arquivado && a.status !== 'Agendado'],
+    ['arquivados', 'Arquivados', a => a.arquivado],
+];
 function adminAgendamentos() {
-    const lista = [...db.agendamentos].sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora));
-    return `<div class="caixa">${lista.length ? `<div class="tabela-wrap"><table>
-        <tr><th>Data</th><th>Pet</th><th>Porte</th><th>Serviço</th><th>Cliente</th><th>Valor</th><th>Status</th></tr>
-        ${lista.map(a => `<tr><td>${dataBR(a.data)} às ${a.hora}</td><td>${esc(a.pet)} <small style="color:var(--suave)">${a.especie}</small></td><td>${a.porte}</td><td>${servicoPor(a.servico).nome}${(a.extras || []).length ? `<br><small style="color:var(--suave)">+ ${a.extras.map(x => extraPor(x).nome).join(', ')}</small>` : ''}</td>
-        <td>${esc((usuarioPor(a.clienteId) || {}).nome || '—')}<br><small style="color:var(--suave)">${esc((usuarioPor(a.clienteId) || {}).telefone || '')}</small></td>
-        <td>${a.gratis ? 'Grátis ⭐' : dinheiro(a.valor)}</td>
-        <td><select data-acao-change="status-agenda" data-id="${a.id}">${STATUS_AGENDA.map(s => `<option ${s === a.status ? 'selected' : ''}>${s}</option>`).join('')}</select></td></tr>`).join('')}
-    </table></div>` : '<p class="vazio">Nenhum agendamento.</p>'}</div>`;
+    const aba = ABAS_AGENDA.find(a => a[0] === ADM.agAba);
+    const b = ADM.busca.agendamentos.toLowerCase();
+    let lista = db.agendamentos.filter(aba[2]).filter(a => !b || a.pet.toLowerCase().includes(b) || nomeCliente(a.clienteId).toLowerCase().includes(b));
+    lista = lista.sort((x, y) => (x.data + x.hora).localeCompare(y.data + y.hora));
+    if (ADM.agAba !== 'agendados') lista.reverse();
+    const textoVazio = { agendados: 'Nenhum banho marcado.', historico: 'Nenhum agendamento concluído ou cancelado.', arquivados: 'Nada arquivado.' }[aba[0]];
+    return `
+    <div class="caixa">
+        <div class="ferramentas">${abasLista(ABAS_AGENDA, ADM.agAba, db.agendamentos, 'adm-aba-agenda')}
+            <input class="busca-adm" data-adm-busca="agendamentos" placeholder="🔍 Pet ou cliente" value="${esc(ADM.busca.agendamentos)}">
+            <button class="btn btn-musgo" data-acao="adm-novo-agendamento">+ Novo agendamento</button></div>
+        ${lista.length ? `<div class="tabela-wrap"><table class="t-adm">
+            <tr><th>Quando</th><th>Pet</th><th>Serviço</th><th>Cliente</th><th>Valor</th><th>Status</th><th></th></tr>
+            ${lista.map(a => { const u = usuarioPor(a.clienteId) || {}; const zap = linkWhats(u.telefone, textoConfirmacao(a)); return `<tr>
+                <td><b>${dataBR(a.data)}</b><br><small class="suave">${a.hora}${a.data === hojeISO() ? ' · hoje' : ''}</small></td>
+                <td><div class="pet-cel"><span class="avatar pet peq">${iconePet(a.especie)}</span><div><b>${esc(a.pet)}</b><br><small class="suave">${a.especie} · ${a.porte}</small></div></div></td>
+                <td>${servicoPor(a.servico).nome}${(a.extras || []).length ? `<br><small class="suave">+ ${a.extras.map(x => extraPor(x).nome).join(', ')}</small>` : ''}</td>
+                <td>${esc(u.nome || '—')}<br><small class="suave nw">${esc(u.telefone || 'sem telefone')}</small></td>
+                <td><b>${a.gratis ? 'Grátis ⭐' : dinheiro(a.valor)}</b></td>
+                <td>${badgeAgenda(a.status)}</td>
+                <td><div class="acoes">
+                    ${a.status === 'Agendado' && !a.arquivado ? `
+                        <button class="btn btn-musgo btn-peq" data-acao="adm-concluir-agenda" data-id="${a.id}">✓ Concluir</button>
+                        <button class="ic-btn" data-acao="adm-editar-agenda" data-id="${a.id}" title="Remarcar ou trocar serviço">✏️</button>
+                        ${zap ? `<a class="ic-btn zap" href="${zap}" target="_blank" rel="noopener" title="Confirmar pelo WhatsApp">💬</a>` : `<span class="ic-btn off" title="Cliente sem telefone">💬</span>`}
+                        <button class="ic-btn perigo" data-acao="adm-cancelar-agenda" data-id="${a.id}" title="Cancelar">✕</button>` : ''}
+                    ${ADM.agAba === 'historico' ? `<button class="ic-btn" data-acao="adm-arquivar-agenda" data-id="${a.id}" title="Arquivar">🗄️</button>` : ''}
+                    ${ADM.agAba === 'arquivados' ? `<button class="ic-btn" data-acao="adm-desarquivar-agenda" data-id="${a.id}" title="Voltar ao histórico">↩️</button><button class="ic-btn perigo" data-acao="adm-excluir-agenda" data-id="${a.id}" title="Excluir de vez">🗑️</button>` : ''}
+                </div></td></tr>`; }).join('')}
+        </table></div>` : `<p class="vazio">${b ? 'Nenhum agendamento encontrado.' : textoVazio}</p>`}
+        ${ADM.agAba === 'historico' && lista.length ? `<div class="rodape-lista"><button class="btn btn-borda btn-peq" data-acao="adm-arquivar-todos-agenda">🗄️ Arquivar todo o histórico</button></div>` : ''}
+    </div>`;
 }
 
+// Modal de novo agendamento / remarcação. Usa ADM.novoAg ou ADM.editAg
+function modalAgenda() {
+    const novo = !!ADM.novoAg;
+    const s = novo ? ADM.novoAg : ADM.editAg;
+    const clientes = db.usuarios.filter(u => (u.pets || []).some(p => TIPOS_BANHO_FRONT.includes(p.tipo)));
+    const cli = novo ? usuarioPor(s.clienteId) : null;
+    const pets = cli ? cli.pets.filter(p => TIPOS_BANHO_FRONT.includes(p.tipo)) : [];
+    const pet = novo ? pets.find(p => p.id === s.petId) : null;
+    const porte = novo ? (pet && pet.porte) : s.porte;
+    const preco = (sv) => Math.round(sv.preco * (PORTES[porte] || 1));
+    const valor = porte ? SERVICOS.filter(x => x.id === s.servicoId).reduce((t, sv) => t + preco(sv), 0) + s.adicionais.reduce((t, id) => t + extraPor(id).preco, 0) : 0;
+    abrirModal(`
+        <div class="modal-topo"><h2>${novo ? '+ Novo agendamento' : `Remarcar · ${esc(s.pet)}`}</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
+        <div class="form">
+            ${novo ? `<div class="form-linha">
+                <label>Cliente<select data-ag-campo="clienteId"><option value="">Escolha…</option>${clientes.map(u => `<option value="${u.id}" ${u.id === s.clienteId ? 'selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></label>
+                <label>Pet<select data-ag-campo="petId" ${cli ? '' : 'disabled'}><option value="">${cli ? 'Escolha…' : 'Escolha o cliente antes'}</option>${pets.map(p => `<option value="${p.id}" ${p.id === s.petId ? 'selected' : ''}>${iconePet(p.tipo)} ${esc(p.nome)} · ${p.porte}</option>`).join('')}</select></label>
+            </div>
+            ${!clientes.length ? '<p class="nota">Nenhum cliente com cachorro ou gato cadastrado.</p>' : ''}` : ''}
+            <span class="rot">Serviço</span>
+            <div class="opcoes-adm">${SERVICOS.map(sv => `<button type="button" class="op-adm ${sv.id === s.servicoId ? 'ativo' : ''}" data-acao="adm-ag-servico" data-v="${sv.id}">${sv.icone} ${sv.nome}${porte ? `<small>${dinheiro(preco(sv))}</small>` : ''}</button>`).join('')}</div>
+            <span class="rot">Adicionais</span>
+            <div class="opcoes-adm">${EXTRAS.map(x => `<button type="button" class="op-adm ${s.adicionais.includes(x.id) ? 'ativo' : ''}" data-acao="adm-ag-extra" data-v="${x.id}">${x.icone} ${x.nome}<small>+ ${dinheiro(x.preco)}</small></button>`).join('')}</div>
+            <label style="max-width:240px">Data<input type="date" data-ag-campo="data" min="${hojeISO()}" value="${s.data}"></label>
+            <span class="rot">Horário</span>
+            ${!s.data ? '<p class="suave">Escolha a data para ver os horários livres.</p>'
+                : s.fechado ? '<p class="nota">Não abrimos aos domingos.</p>'
+                : `<div class="horas-adm">${HORARIOS.map(h => { const livre = s.livres.includes(h) || (!novo && s.data === s.dataOriginal && h === s.horaOriginal); return `<button type="button" class="${h === s.hora ? 'ativo' : ''}" data-acao="adm-ag-hora" data-v="${h}" ${livre ? '' : 'disabled'}>${h}</button>`; }).join('')}</div>`}
+            <div class="ag-total"><span>Valor estimado</span><b>${porte ? dinheiro(valor) : '—'}</b></div>
+            <div class="modal-acoes">
+                <button type="button" class="btn btn-borda" data-acao="fechar-modal">Cancelar</button>
+                <button type="button" class="btn btn-musgo" data-acao="adm-ag-salvar" ${(novo ? s.petId : true) && s.data && s.hora ? '' : 'disabled'}>${novo ? 'Agendar' : 'Salvar alterações'}</button>
+            </div>
+        </div>`);
+}
+const TIPOS_BANHO_FRONT = ['Cachorro', 'Gato'];
+async function carregarHorariosAdm(s) {
+    s.livres = []; s.fechado = false;
+    if (!s.data) return;
+    const r = await api('GET', '/horarios?data=' + s.data);
+    s.livres = r.livres; s.fechado = r.fechado;
+    if (s.hora && !s.livres.includes(s.hora) && !(s.data === s.dataOriginal && s.hora === s.horaOriginal)) s.hora = '';
+}
+
+/* =========================================================
+   ASSINATURAS
+   ========================================================= */
+const ABAS_ASS = [
+    ['ativas', 'Ativas', u => u.assinatura.ativa],
+    ['canceladas', 'Canceladas', u => !u.assinatura.ativa && !u.assinatura.arquivada],
+    ['arquivadas', 'Arquivadas', u => !u.assinatura.ativa && u.assinatura.arquivada],
+];
 function adminAssinaturas() {
-    const lista = db.usuarios.filter(u => u.assinatura);
-    return `<div class="caixa">${lista.length ? `<div class="tabela-wrap"><table>
-        <tr><th>Cliente</th><th>Plano</th><th>Rações</th><th>Entrega</th><th>Desde</th><th>Status</th><th></th></tr>
-        ${lista.map(u => { const a = u.assinatura; return `<tr><td>${esc(u.nome)}</td><td>${PLANOS[a.plano].nome} · ${dinheiro(PLANOS[a.plano].preco)}</td>
-        <td>${nomesItens(a, '<br>')}</td><td>${!a.ativa ? '—' : a.diaEntrega ? 'Dia ' + a.diaEntrega + ' · próx. ' + dataBR(proximaEntrega(a.diaEntrega)) : 'Sem agendamento'}</td><td>${dataBR(a.desde)}</td>
-        <td><span class="status st-${a.ativa ? 'Ativa' : 'Cancelada'}">${a.ativa ? 'Ativa' : 'Cancelada'}</span></td>
-        <td>${a.ativa ? `<button class="btn btn-perigo btn-peq" data-acao="admin-cancelar-assinatura" data-id="${u.id}">Cancelar</button>` : ''}</td></tr>`; }).join('')}
-    </table></div>` : '<p class="vazio">Nenhum assinante ainda.</p>'}</div>`;
+    const todos = db.usuarios.filter(u => u.assinatura);
+    const aba = ABAS_ASS.find(a => a[0] === ADM.assAba);
+    const b = ADM.busca.assinaturas.toLowerCase();
+    const lista = todos.filter(aba[2]).filter(u => !b || u.nome.toLowerCase().includes(b));
+    return `
+    <div class="kpis kpis-3">
+        <div class="kpi"><span class="kpi-ic">⭐</span><div><small>Assinantes ativos</small><strong>${assinantesAtivos().length}</strong></div></div>
+        <div class="kpi"><span class="kpi-ic">💳</span><div><small>Mensalidades</small><strong>${dinheiro(mensalidades())}</strong><p>por mês</p></div></div>
+        <div class="kpi"><span class="kpi-ic">📦</span><div><small>Com entrega mensal</small><strong>${assinantesAtivos().filter(u => u.assinatura.diaEntrega).length}</strong></div></div>
+    </div>
+    <div class="caixa">
+        <div class="ferramentas">${abasLista(ABAS_ASS, ADM.assAba, todos, 'adm-aba-ass')}
+            <input class="busca-adm" data-adm-busca="assinaturas" placeholder="🔍 Cliente" value="${esc(ADM.busca.assinaturas)}"></div>
+        ${lista.length ? `<div class="tabela-wrap"><table class="t-adm">
+            <tr><th>Cliente</th><th>Plano</th><th>Rações</th><th>Entrega</th><th>Desde</th><th>Status</th><th></th></tr>
+            ${lista.map(u => { const a = u.assinatura; return `<tr>
+                <td><b>${esc(u.nome)}</b><br><small class="suave">${esc(u.email)}</small></td>
+                <td>${PLANOS[a.plano].nome}<br><small class="suave">${dinheiro(PLANOS[a.plano].preco)}/mês</small></td>
+                <td>${a.itens.length ? nomesItens(a, '<br>') : '<span class="suave">—</span>'}</td>
+                <td>${!a.ativa ? '—' : a.diaEntrega ? `Dia ${a.diaEntrega}<br><small class="suave">próx. ${dataBR(proximaEntrega(a.diaEntrega))}</small>` : '<span class="suave">Sem entrega</span>'}</td>
+                <td>${dataBR(a.desde)}</td>
+                <td>${a.ativa ? badge('Ativa', 'verde', '✓') : a.arquivada ? badge('Arquivada', 'cinza') : badge('Cancelada', 'vermelho', '✕')}</td>
+                <td><div class="acoes">
+                    ${a.ativa ? `<button class="btn btn-perigo btn-peq" data-acao="admin-cancelar-assinatura" data-id="${u.id}">Cancelar</button>` : ''}
+                    ${!a.ativa && !a.arquivada ? `<button class="ic-btn" data-acao="adm-arquivar-ass" data-id="${u.id}" title="Arquivar">🗄️</button>` : ''}
+                    ${a.arquivada ? `<button class="ic-btn" data-acao="adm-desarquivar-ass" data-id="${u.id}" title="Voltar para canceladas">↩️</button><button class="ic-btn perigo" data-acao="adm-excluir-ass" data-id="${u.id}" title="Excluir de vez">🗑️</button>` : ''}
+                </div></td></tr>`; }).join('')}
+        </table></div>` : `<p class="vazio">${b ? 'Nenhuma assinatura encontrada.' : { ativas: 'Nenhum assinante ativo.', canceladas: 'Nenhuma assinatura cancelada.', arquivadas: 'Nada arquivado.' }[aba[0]]}</p>`}
+    </div>`;
 }
 
+/* =========================================================
+   CLIENTES
+   ========================================================= */
 function adminClientes() {
-    return `<div class="caixa">${db.usuarios.length ? `<div class="tabela-wrap"><table>
-        <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Pedidos</th><th>Total gasto</th><th>Plano</th><th>Cliente desde</th></tr>
-        ${db.usuarios.map(u => { const peds = db.pedidos.filter(p => p.clienteId === u.id && p.status !== 'Cancelado'); return `<tr>
-        <td><strong>${esc(u.nome)}</strong></td><td>${esc(u.email)}</td><td>${esc(u.telefone)}</td><td>${peds.length}</td><td>${dinheiro(peds.reduce((s, p) => s + p.total, 0))}</td>
-        <td>${planoAtivo(u) ? '⭐ ' + planoAtivo(u).nome : '—'}</td><td>${dataBR(u.criadoEm)}</td></tr>`; }).join('')}
-    </table></div>` : '<p class="vazio">Nenhum cliente.</p>'}</div>`;
+    const b = ADM.busca.clientes.toLowerCase(), bNum = b.replace(/\D/g, '');
+    const lista = db.usuarios.filter(u => !b || u.nome.toLowerCase().includes(b) || u.email.toLowerCase().includes(b) || (bNum && u.telefone.replace(/\D/g, '').includes(bNum)));
+    return `
+    <div class="caixa">
+        <div class="ferramentas"><input class="busca-adm larga" data-adm-busca="clientes" placeholder="🔍 Buscar por nome, e-mail ou telefone" value="${esc(ADM.busca.clientes)}">
+            <span class="suave">${db.usuarios.length} cliente${db.usuarios.length === 1 ? '' : 's'}</span></div>
+        ${lista.length ? `<div class="tabela-wrap"><table class="t-adm">
+            <tr><th>Cliente</th><th>Telefone</th><th>Pets</th><th>Pedidos</th><th>Total gasto</th><th>Clube</th><th>Desde</th><th></th></tr>
+            ${lista.map(u => { const peds = db.pedidos.filter(p => p.clienteId === u.id && p.status !== 'Cancelado'); return `<tr>
+                <td><div class="pet-cel"><span class="avatar ini">${iniciais(u.nome)}</span><div><b>${esc(u.nome)}</b>${u.observacoes ? ' <span title="Tem observações">📝</span>' : ''}<br><small class="suave">${esc(u.email)}</small></div></div></td>
+                <td class="nw">${esc(u.telefone) || '<span class="suave">—</span>'}</td>
+                <td>${(u.pets || []).map(p => iconePet(p.tipo)).join(' ') || '<span class="suave">—</span>'}</td>
+                <td>${peds.length}</td><td><b>${dinheiro(peds.reduce((s, p) => s + p.total, 0))}</b></td>
+                <td>${planoAtivo(u) ? badge(planoAtivo(u).nome, 'caramelo', '⭐') : '<span class="suave">—</span>'}</td>
+                <td>${dataBR(u.criadoEm)}</td>
+                <td><div class="acoes"><button class="btn btn-borda btn-peq" data-acao="adm-ver-cliente" data-id="${u.id}">Ver</button>
+                    <button class="ic-btn" data-acao="adm-editar-cliente" data-id="${u.id}" title="Editar">✏️</button>
+                    <button class="ic-btn perigo" data-acao="adm-excluir-cliente" data-id="${u.id}" title="Excluir">🗑️</button></div></td>
+            </tr>`; }).join('')}
+        </table></div>` : `<p class="vazio">${b ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado.'}</p>`}
+    </div>`;
 }
 
+async function verCliente(id) {
+    const c = await api('GET', '/admin/clientes/' + id);
+    const validos = c.pedidos.filter(p => p.status !== 'Cancelado');
+    const zap = linkWhats(c.telefone, `Olá, ${c.nome.split(' ')[0]}! Aqui é da AgroPet 🐾 `);
+    const a = c.assinatura;
+    abrirModal(`
+        <div class="modal-topo"><h2><span class="avatar ini">${iniciais(c.nome)}</span> ${esc(c.nome)}</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
+        <div class="ficha">
+            <div class="ficha-bloco"><small>Contato</small><b>${esc(c.email)}</b><span>${esc(c.telefone || 'sem telefone')} · cliente desde ${dataBR(c.criadoEm)}</span>
+                ${zap ? `<a class="link-zap" href="${zap}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>` : ''}</div>
+            <div class="ficha-bloco"><small>Compras</small><b>${dinheiro(validos.reduce((s, p) => s + p.total, 0))}</b><span>${validos.length} pedido${validos.length === 1 ? '' : 's'} · ${a && a.ativa ? 'Clube ' + PLANOS[a.plano].nome : 'sem Clube'}</span></div>
+        </div>
+        <form class="form" id="formObsCliente" data-id="${c.id}">
+            <label>Observações <small class="suave">(só a loja vê)</small><textarea name="observacoes" rows="2" placeholder="Ex.: o Thor tem pele sensível, usar shampoo neutro">${esc(c.observacoes || '')}</textarea></label>
+            <button class="btn btn-borda btn-peq" style="align-self:flex-start">Salvar observações</button>
+        </form>
+        <h3 class="sub-ficha">🐾 Pets (${c.pets.length})</h3>
+        ${c.pets.length ? `<div class="pets-ficha">${c.pets.map(p => `<div><span class="avatar pet peq">${iconePet(p.tipo)}</span><b>${esc(p.nome)}</b><small>${p.tipo} · ${p.porte}${p.raca ? ' · ' + esc(p.raca) : ''}</small></div>`).join('')}</div>` : '<p class="suave">Nenhum pet cadastrado.</p>'}
+        <h3 class="sub-ficha">🧾 Pedidos (${c.pedidos.length})</h3>
+        ${c.pedidos.length ? `<table class="t-adm">${c.pedidos.slice(0, 8).map(p => `<tr><td>#${String(p.id).padStart(3, '0')}</td><td>${dataBR(soData(p.data))}</td><td>${p.itens.reduce((s, i) => s + i.qtd, 0)} itens</td><td><b>${dinheiro(p.total)}</b></td><td>${badgePedido(p.status)}</td></tr>`).join('')}</table>` : '<p class="suave">Nenhum pedido.</p>'}
+        <h3 class="sub-ficha">🛁 Banho e Tosa (${c.agendamentos.length})</h3>
+        ${c.agendamentos.length ? `<table class="t-adm">${c.agendamentos.slice(0, 8).map(g => `<tr><td>${dataBR(g.data)} ${g.hora}</td><td>${esc(g.petNome)}</td><td>${esc(g.servicoNome || servicoPor(g.servicoId).nome)}</td><td>${g.gratis ? 'Grátis' : dinheiro(g.valor)}</td><td>${badgeAgenda(g.status)}</td></tr>`).join('')}</table>` : '<p class="suave">Nenhum agendamento.</p>'}
+        <div class="modal-acoes">
+            <button class="btn btn-borda" data-acao="adm-editar-cliente" data-id="${c.id}">✏️ Editar dados</button>
+            <button class="btn btn-musgo" data-acao="fechar-modal">Fechar</button>
+        </div>`);
+}
+
+function editarCliente(id) {
+    const u = usuarioPor(id);
+    abrirModal(`
+        <div class="modal-topo"><h2>Editar cliente</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
+        <form class="form" id="formCliente" data-id="${u.id}">
+            <label>Nome<input name="nome" value="${esc(u.nome)}" required></label>
+            <div class="form-linha">
+                <label>E-mail<input name="email" type="email" value="${esc(u.email)}" required></label>
+                <label>Telefone<input name="telefone" value="${esc(u.telefone)}" placeholder="(55) 99999-0000"></label>
+            </div>
+            <label>Observações<textarea name="observacoes" rows="3">${esc(u.observacoes || '')}</textarea></label>
+            <div class="modal-acoes"><button type="button" class="btn btn-borda" data-acao="fechar-modal">Cancelar</button><button class="btn btn-musgo">Salvar</button></div>
+        </form>`);
+}
+
+/* =========================================================
+   CONFIGURAR SITE
+   ========================================================= */
 function adminSite() {
     const s = db.site;
     return `
-    <form class="caixa form" id="formSite" style="max-width:680px">
-        <h2>Banner da página inicial</h2>
+    <div class="adm-linha">
+    <form class="caixa form" id="formSite">
+        <h2>🏠 Banner da página inicial</h2>
         <label>Etiqueta<input name="pilula" value="${esc(s.pilula)}"></label>
         <label>Título<input name="titulo" value="${esc(s.titulo)}" required></label>
         <label>Texto<textarea name="texto" rows="2">${esc(s.texto)}</textarea></label>
         <label>Texto do botão<input name="botao" value="${esc(s.botao)}"></label>
-        <h2 style="margin-top:8px">Entrega</h2>
+        <h2 style="margin-top:8px">🚚 Entrega</h2>
         <div class="form-linha">
             <label>Valor do frete (R$)<input name="frete" type="number" step="0.01" min="0" value="${s.frete}"></label>
             <label>Frete grátis acima de (R$)<input name="freteGratisAcima" type="number" step="0.01" min="0" value="${s.freteGratisAcima}"></label>
         </div>
-        <button class="btn btn-azul" style="align-self:flex-start">Salvar configurações</button>
+        <button class="btn btn-musgo" style="align-self:flex-start">Salvar configurações</button>
     </form>
-    <div class="caixa" style="margin-top:20px">
-        <h2>Imagens dos banners</h2>
-        <p style="color:var(--suave);margin:-8px 0 14px">Troque os emojis do lado direito de cada banner por uma imagem. Imagens com fundo branco ficam mais bonitas.</p>
+    <div class="caixa">
+        <h2>🖼️ Imagens dos banners</h2>
+        <p class="suave" style="margin:-8px 0 14px">Troque os emojis do lado direito de cada banner por uma imagem. Imagens com fundo branco ficam mais bonitas.</p>
         <div class="lista-imgs">
             ${['Banner principal', 'Banner do Clube', 'Banner do Banho e Tosa'].map((nome, i) => {
                 const img = imgSlide(i);
@@ -1517,15 +1975,16 @@ function adminSite() {
                     <span class="img-prev contem">${img ? `<img src="${img}" alt="">` : ['🐶🐱', '⭐📦', '🐩🛁'][i]}</span>
                     <div class="txt"><strong>${nome}</strong><small>${propria ? 'Imagem enviada por você' : IMG_PADRAO[i] ? 'Usando a foto padrão' : 'Usando emojis'}</small></div>
                     <div class="acoes">
-                        <label class="btn btn-borda btn-peq" style="flex-direction:row">📷 Trocar imagem<input type="file" accept="image/*" hidden data-upload="slide" data-i="${i}"></label>
-                        ${propria ? `<button class="btn btn-perigo btn-peq" data-acao="img-slide-padrao" data-i="${i}">${IMG_PADRAO[i] ? 'Voltar à foto padrão' : 'Voltar aos emojis'}</button>` : ''}
+                        <label class="btn btn-borda btn-peq" style="flex-direction:row">📷 Trocar<input type="file" accept="image/*" hidden data-upload="slide" data-i="${i}"></label>
+                        ${propria ? `<button class="btn btn-perigo btn-peq" data-acao="img-slide-padrao" data-i="${i}">${IMG_PADRAO[i] ? 'Foto padrão' : 'Emojis'}</button>` : ''}
                     </div>
                 </div>`; }).join('')}
         </div>
     </div>
+    </div>
     <div class="caixa" style="margin-top:20px">
-        <h2>Imagens dos animais</h2>
-        <p style="color:var(--suave);margin:-8px 0 14px">Aparecem nos círculos da página inicial e no topo da página de cada animal.</p>
+        <h2>🐾 Imagens dos animais</h2>
+        <p class="suave" style="margin:-8px 0 14px">Aparecem nos círculos da página inicial e no topo da página de cada animal.</p>
         <div class="grade-imgs">
             ${ANIMAIS.map(a => `<div class="linha-img">
                 <span class="img-prev redondo cor-${a.cor}">${iconeAnimal(a)}</span>
@@ -1537,12 +1996,217 @@ function adminSite() {
             </div>`).join('')}
         </div>
     </div>
-    <div class="caixa" style="max-width:680px;margin-top:20px">
-        <h2>Dados de demonstração</h2>
-        <p>Para apagar tudo e voltar aos dados iniciais, rode no terminal do projeto:</p>
-        <pre style="background:var(--fundo);padding:12px 16px;border-radius:10px;margin-top:10px">node prisma/seed.mjs</pre>
+    <div class="caixa zona-perigo" style="margin-top:20px">
+        <div><h2>🧹 Limpar dados de teste</h2>
+        <p>Apaga <b>todos os clientes, pets, pedidos, agendamentos e assinaturas</b>, para começar a usar a loja de verdade. O catálogo de produtos, as imagens, as configurações e a conta do admin continuam.</p></div>
+        <button class="btn btn-perigo" data-acao="adm-limpar">Limpar dados de teste</button>
     </div>`;
 }
+
+function pedirLimpeza() {
+    abrirModal(`
+        <div class="modal-topo"><h2>🧹 Limpar dados de teste</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
+        <form class="form" id="formLimpar">
+            <p>Isso apaga <b>${db.usuarios.length} clientes, ${db.pedidos.length} pedidos e ${db.agendamentos.length} agendamentos</b>, com pets e assinaturas. <b>Não dá para desfazer.</b></p>
+            <label>Para confirmar, digite <b>LIMPAR</b><input name="confirmar" autocomplete="off" required></label>
+            <div class="modal-acoes"><button type="button" class="btn btn-borda" data-acao="fechar-modal">Cancelar</button><button class="btn btn-perigo-cheio">Apagar tudo</button></div>
+        </form>`);
+}
+
+/* =========================================================
+   AÇÕES DO GERENCIAMENTO (cliques com data-acao="adm-...")
+   ========================================================= */
+function acaoAdmin(acao, el, id) {
+    const recarregar = async (msg) => { await sincronizar(); if (msg) aviso(msg); };
+    switch (acao) {
+        case 'adm-periodo': ADM.periodo = +el.dataset.n; redesenharAdmin(); break;
+        case 'adm-ver-estoque': ADM.prod = { busca: '', animal: '', categoria: '', status: 'estoque', pagina: 1 }; adminAba = 'produtos'; renderizar(); window.scrollTo(0, 0); break;
+        case 'adm-pagina': ADM.prod.pagina = +el.dataset.p; redesenharAdmin(); break;
+        case 'adm-lote-limpar': ADM.sel.clear(); redesenharAdmin(); break;
+        case 'adm-lote': {
+            const ids = [...ADM.sel], tipo = el.dataset.lote;
+            const fazer = () => executar(async () => {
+                const r = await api('POST', '/produtos/lote', { ids, acao: tipo });
+                ADM.sel.clear();
+                await recarregar(`${r.quantidade} produto${r.quantidade > 1 ? 's' : ''} ${{ excluir: 'excluído', esconder: 'escondido', mostrar: 'visível' }[tipo]}${r.quantidade > 1 ? 's' : ''}`);
+            });
+            if (tipo === 'excluir') pedirConfirmacao(`Excluir ${ids.length} produto${ids.length > 1 ? 's' : ''}? Não dá para desfazer.`, fazer); else fazer();
+            break;
+        }
+        // pedidos
+        case 'adm-aba-pedidos': ADM.pedidosAba = el.dataset.aba; redesenharAdmin(); break;
+        case 'adm-ver-pedido': verPedido(id); break;
+        case 'adm-avancar-pedido': {
+            const p = db.pedidos.find(x => x.id === id), [prox] = PROXIMO_PEDIDO[p.status];
+            executar(async () => { await api('PATCH', '/pedidos/' + id, { status: prox }); await recarregar(`Pedido #${id}: ${prox}`); });
+            break;
+        }
+        case 'adm-status-pedido': {
+            const status = el.dataset.status;
+            const fazer = () => executar(async () => { await api('PATCH', '/pedidos/' + id, { status }); await sincronizar(); verPedido(id); aviso(`Pedido #${id}: ${status}`); });
+            if (status === 'Cancelado') pedirConfirmacao(`Cancelar o pedido #${id}? Os itens voltam para o estoque.`, fazer); else fazer();
+            break;
+        }
+        case 'adm-arquivar-pedido': executar(async () => { await api('PATCH', '/pedidos/' + id, { arquivado: true }); await recarregar('Pedido arquivado'); }); break;
+        case 'adm-desarquivar-pedido': executar(async () => { await api('PATCH', '/pedidos/' + id, { arquivado: false }); await recarregar('Pedido de volta ao histórico'); }); break;
+        case 'adm-arquivar-todos-pedidos': {
+            const ids = db.pedidos.filter(ABAS_PEDIDOS[1][2]).map(p => p.id);
+            pedirConfirmacao(`Arquivar ${ids.length} pedido${ids.length > 1 ? 's' : ''} do histórico?`, () => executar(async () => {
+                for (const i of ids) await api('PATCH', '/pedidos/' + i, { arquivado: true });
+                await recarregar('Histórico arquivado');
+            }));
+            break;
+        }
+        case 'adm-excluir-pedido':
+            pedirConfirmacao(`Excluir o pedido #${id} de vez? Ele deixa de contar no faturamento.`, () => executar(async () => { await api('DELETE', '/pedidos/' + id); await recarregar('Pedido excluído'); }));
+            break;
+        case 'adm-imprimir': imprimirPedido(id, el.dataset.tipo); break;
+        // banho e tosa
+        case 'adm-aba-agenda': ADM.agAba = el.dataset.aba; redesenharAdmin(); break;
+        case 'adm-concluir-agenda': executar(async () => { await api('PATCH', '/agendamentos/' + id, { status: 'Concluído' }); await recarregar('Banho concluído ✓'); }); break;
+        case 'adm-cancelar-agenda': {
+            const a = db.agendamentos.find(x => x.id === id);
+            pedirConfirmacao(`Cancelar o ${servicoPor(a.servico).nome} do ${a.pet} em ${dataBR(a.data)} às ${a.hora}? O horário fica livre.`, () => executar(async () => { await api('PATCH', '/agendamentos/' + id, { status: 'Cancelado' }); await recarregar('Agendamento cancelado'); }));
+            break;
+        }
+        case 'adm-arquivar-agenda': executar(async () => { await api('PATCH', '/agendamentos/' + id, { arquivado: true }); await recarregar('Agendamento arquivado'); }); break;
+        case 'adm-desarquivar-agenda': executar(async () => { await api('PATCH', '/agendamentos/' + id, { arquivado: false }); await recarregar('De volta ao histórico'); }); break;
+        case 'adm-arquivar-todos-agenda': {
+            const ids = db.agendamentos.filter(ABAS_AGENDA[1][2]).map(a => a.id);
+            pedirConfirmacao(`Arquivar ${ids.length} agendamento${ids.length > 1 ? 's' : ''} do histórico?`, () => executar(async () => {
+                for (const i of ids) await api('PATCH', '/agendamentos/' + i, { arquivado: true });
+                await recarregar('Histórico arquivado');
+            }));
+            break;
+        }
+        case 'adm-excluir-agenda':
+            pedirConfirmacao('Excluir este agendamento de vez?', () => executar(async () => { await api('DELETE', '/agendamentos/' + id); await recarregar('Agendamento excluído'); }));
+            break;
+        case 'adm-novo-agendamento':
+            ADM.editAg = null; ADM.novoAg = { clienteId: null, petId: null, servicoId: 'banho', adicionais: [], data: '', hora: '', livres: [] };
+            modalAgenda();
+            break;
+        case 'adm-editar-agenda': {
+            const a = db.agendamentos.find(x => x.id === id);
+            ADM.novoAg = null;
+            ADM.editAg = { id, pet: a.pet, porte: a.porte, servicoId: a.servico, adicionais: [...(a.extras || [])], data: a.data, hora: a.hora, dataOriginal: a.data, horaOriginal: a.hora, livres: [] };
+            executar(async () => { await carregarHorariosAdm(ADM.editAg); modalAgenda(); });
+            break;
+        }
+        case 'adm-ag-servico': { const s = ADM.novoAg || ADM.editAg; s.servicoId = el.dataset.v; modalAgenda(); break; }
+        case 'adm-ag-extra': { const s = ADM.novoAg || ADM.editAg; const v = el.dataset.v; s.adicionais = s.adicionais.includes(v) ? s.adicionais.filter(x => x !== v) : [...s.adicionais, v]; modalAgenda(); break; }
+        case 'adm-ag-hora': { const s = ADM.novoAg || ADM.editAg; s.hora = el.dataset.v; modalAgenda(); break; }
+        case 'adm-ag-salvar': {
+            if (el.disabled) break;
+            el.disabled = true;
+            const s = ADM.novoAg || ADM.editAg;
+            executar(async () => {
+                if (ADM.novoAg) await api('POST', '/agendamentos', { petId: s.petId, servicoId: s.servicoId, adicionais: s.adicionais, data: s.data, hora: s.hora });
+                else await api('PATCH', '/agendamentos/' + s.id, { data: s.data, hora: s.hora, servicoId: s.servicoId, adicionais: s.adicionais });
+                const msg = ADM.novoAg ? 'Agendamento criado ✓' : 'Agendamento atualizado ✓';
+                ADM.novoAg = ADM.editAg = null; fecharModal();
+                ADM.agAba = 'agendados';
+                await recarregar(msg);
+            }).finally(() => { el.disabled = false; });
+            break;
+        }
+        // assinaturas
+        case 'adm-aba-ass': ADM.assAba = el.dataset.aba; redesenharAdmin(); break;
+        case 'adm-arquivar-ass': executar(async () => { await api('PATCH', '/admin/assinaturas', { clienteId: id, arquivada: true }); await recarregar('Assinatura arquivada'); }); break;
+        case 'adm-desarquivar-ass': executar(async () => { await api('PATCH', '/admin/assinaturas', { clienteId: id, arquivada: false }); await recarregar('De volta para canceladas'); }); break;
+        case 'adm-excluir-ass':
+            pedirConfirmacao('Excluir esta assinatura de vez?', () => executar(async () => { await api('DELETE', '/admin/assinaturas?clienteId=' + id); await recarregar('Assinatura excluída'); }));
+            break;
+        // clientes
+        case 'adm-ver-cliente': executar(() => verCliente(id)); break;
+        case 'adm-editar-cliente': editarCliente(id); break;
+        case 'adm-excluir-cliente': {
+            const u = usuarioPor(id);
+            pedirConfirmacao(`Excluir ${u.nome}? Os pets, pedidos, agendamentos e a assinatura dessa pessoa também serão apagados. Não dá para desfazer.`, () => executar(async () => { await api('DELETE', '/admin/clientes/' + id); await recarregar('Cliente excluído'); }));
+            break;
+        }
+        // site
+        case 'adm-limpar': pedirLimpeza(); break;
+    }
+}
+
+// Campos do gerenciamento que mudam valor (filtros, seleção, formulário de agendamento)
+function mudouAdmin(el) {
+    if (el.dataset.admFiltro) {
+        const c = el.dataset.admFiltro;
+        ADM.prod[c] = el.value;
+        if (c === 'animal') ADM.prod.categoria = '';
+        ADM.prod.pagina = 1;
+        redesenharAdmin();
+        return true;
+    }
+    if (el.dataset.admCheck) {
+        const v = el.dataset.admCheck;
+        if (v === 'pagina') {
+            const lista = produtosFiltrados().slice((ADM.prod.pagina - 1) * POR_PAGINA, ADM.prod.pagina * POR_PAGINA);
+            lista.forEach(p => el.checked ? ADM.sel.add(p.id) : ADM.sel.delete(p.id));
+        } else el.checked ? ADM.sel.add(+v) : ADM.sel.delete(+v);
+        redesenharAdmin();
+        return true;
+    }
+    if (el.dataset.agCampo) {
+        const s = ADM.novoAg || ADM.editAg, c = el.dataset.agCampo;
+        if (c === 'clienteId') { s.clienteId = +el.value || null; s.petId = null; }
+        if (c === 'petId') s.petId = +el.value || null;
+        if (c === 'data') { s.data = el.value; executar(async () => { await carregarHorariosAdm(s); modalAgenda(); }); return true; }
+        modalAgenda();
+        return true;
+    }
+    return false;
+}
+
+// Busca dos filtros do gerenciamento (redesenha sem perder o cursor)
+function buscouAdmin(el) {
+    const qual = el.dataset.admBusca;
+    if (qual === 'prod') { ADM.prod.busca = el.value; ADM.prod.pagina = 1; } else ADM.busca[qual] = el.value;
+    const pos = el.selectionStart;
+    $('#adminConteudo').innerHTML = adminConteudo();
+    const inp = document.querySelector(`[data-adm-busca="${qual}"]`);
+    if (inp) { inp.focus(); inp.setSelectionRange(pos, pos); }
+}
+
+// Formulários do gerenciamento
+function enviouAdmin(f) {
+    if (f.id === 'formObsPedido') {
+        const id = +f.dataset.id, observacao = f.observacao.value;
+        executar(async () => { await api('PATCH', '/pedidos/' + id, { observacao }); await sincronizar(); verPedido(id); aviso('Observação salva ✓'); });
+        return true;
+    }
+    if (f.id === 'formObsCliente') {
+        const id = +f.dataset.id;
+        executar(async () => { await api('PUT', '/admin/clientes/' + id, { observacoes: f.observacoes.value }); await sincronizar(); aviso('Observações salvas ✓'); });
+        return true;
+    }
+    if (f.id === 'formCliente') {
+        const d = Object.fromEntries(new FormData(f));
+        executar(async () => { await api('PUT', '/admin/clientes/' + f.dataset.id, d); fecharModal(); await sincronizar(); aviso('Cliente atualizado ✓'); });
+        return true;
+    }
+    if (f.id === 'formLimpar') {
+        const confirmar = f.confirmar.value.trim().toUpperCase();
+        if (confirmar !== 'LIMPAR') { aviso('Digite LIMPAR para confirmar'); return true; }
+        executar(async () => { await api('POST', '/admin/limpar', { confirmar }); fecharModal(); await sincronizar(); aviso('Dados de teste apagados ✓'); });
+        return true;
+    }
+    return false;
+}
+
+// Dica flutuante dos gráficos
+document.addEventListener('mousemove', (e) => {
+    const tip = document.getElementById('admTip');
+    if (!tip) return;
+    const alvo = e.target.closest && e.target.closest('[data-tip]');
+    if (!alvo) { tip.classList.remove('on'); return; }
+    tip.innerHTML = alvo.dataset.tip;
+    tip.classList.add('on');
+    const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + 'px'; tip.style.top = (e.clientY - tip.offsetHeight - 12) + 'px';
+});
 
 /* =========================================================
    MODAL
@@ -1619,6 +2283,7 @@ document.addEventListener('click', (e) => {
     if (!el) return;
     const acao = el.dataset.acao;
     const id = el.dataset.id ? +el.dataset.id : null;
+    if (acao.startsWith('adm-')) { if (el.tagName === 'A' && el.getAttribute('href')) return; acaoAdmin(acao, el, id); return; }
 
     switch (acao) {
         case 'abrir-conta': el.parentElement.classList.toggle('aberto'); break;
@@ -1761,7 +2426,8 @@ document.addEventListener('click', (e) => {
             });
             break;
 
-        case 'admin-aba': adminAba = el.dataset.aba; buscaAdmin = ''; renderizar(); break;
+        case 'admin-aba': adminAba = el.dataset.aba; fecharModal(); renderizar(); window.scrollTo(0, 0); break;
+        case 'admin-menu': document.querySelector('.adm')?.classList.toggle('menu-aberto'); break; // abre/fecha o menu no celular
         case 'novo-produto': formProduto(null); break;
         case 'editar-produto': formProduto(produtoPor(id)); break;
         case 'excluir-produto':
@@ -1816,6 +2482,7 @@ function reduzirImagem(arquivo, pronto, max = 600) {
 document.addEventListener('submit', (e) => {
     const f = e.target;
     e.preventDefault();
+    if (enviouAdmin(f)) return;
     if (f.id === 'formEntrar') entrar(f);
     else if (f.id === 'formCadastro') cadastrar(f);
     else if (f.id === 'formProduto') salvarProduto(f);
@@ -1871,15 +2538,7 @@ document.addEventListener('change', (e) => {
     if (el.id === 'selAnimal') {
         $('#selCategoria').innerHTML = animalPor(el.value).grupos.map(g => `<option>${esc(g.t)}</option>`).join('');
     }
-    const ac = el.dataset.acaoChange;
-    if (ac === 'status-pedido') {
-        const id = +el.dataset.id, status = el.value;
-        executar(async () => { await api('PATCH', '/pedidos/' + id, { status }); await sincronizar(); aviso(`Pedido #${id}: ${status}`); });
-    }
-    if (ac === 'status-agenda') {
-        const a = db.agendamentos.find(x => x.id === +el.dataset.id), status = el.value;
-        executar(async () => { await api('PATCH', '/agendamentos/' + a.id, { status }); await sincronizar(); aviso(`Agendamento de ${a.pet}: ${status}`); });
-    }
+    mudouAdmin(el);
 });
 
 /* Busca do topo e do admin */
@@ -1889,12 +2548,7 @@ document.addEventListener('input', (e) => {
         if (rotaAtual() !== '') { ir(''); $('#busca').focus(); }
         else renderizar();
     }
-    if (e.target.id === 'buscaAdmin') {
-        buscaAdmin = e.target.value;
-        const pos = e.target.selectionStart;
-        $('#adminConteudo').innerHTML = adminConteudo();
-        const inp = $('#buscaAdmin'); inp.focus(); inp.setSelectionRange(pos, pos);
-    }
+    if (e.target.dataset && e.target.dataset.admBusca) buscouAdmin(e.target);
 });
 
 $('#menuBtn').addEventListener('click', () => $('#barra').classList.toggle('aberta'));

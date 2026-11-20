@@ -19,6 +19,7 @@ model Usuario {
   email        String        @unique // o admin entra com "admin"
   senhaHash    String
   telefone     String        @default("")
+  observacoes  String        @default("") // anotações do admin sobre o cliente
   admin        Boolean       @default(false)
   criadoEm     DateTime      @default(now())
   pets         Pet[]
@@ -108,6 +109,8 @@ model Pedido {
   pagamento String
   endereco  String
   status    String       @default("Recebido") // Recebido, Em separação, Enviado, Entregue, Cancelado
+  observacao String      @default("") // anotação do admin
+  arquivado Boolean      @default(false) // some das listas do gerenciamento, mas continua no faturamento
   itens     ItemPedido[]
 }
 
@@ -132,6 +135,7 @@ model Assinatura {
   diaEntrega Int              @default(0) // 0 = sem agendamento
   pagamento  String           @default("Cartão de crédito")
   ativa      Boolean          @default(true)
+  arquivada  Boolean          @default(false) // assinatura cancelada guardada no histórico
   desde      DateTime         @default(now())
   itens      ItemAssinatura[]
 }
@@ -181,6 +185,7 @@ model Agendamento {
   valor      Float
   gratis     Boolean  @default(false)
   status     String   @default("Agendado") // Agendado, Concluído, Cancelado
+  arquivado  Boolean  @default(false)
   vaga       String?  @unique // "AAAA-MM-DD HH:MM" enquanto não está cancelado (vazio quando cancela). Impede dois no mesmo horário
   criadoEm   DateTime @default(now())
 }

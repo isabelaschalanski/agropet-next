@@ -39,10 +39,12 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 | POST ⚙️ | `/api/produtos` | `{ nome, preco, estoque, animal, categoria, icone, cor, selo, descricao, imagem }` | Cadastra |
 | PUT ⚙️ | `/api/produtos/5` | só os campos que mudaram (ex.: `{ ativo: false }`) | Edita |
 | DELETE ⚙️ | `/api/produtos/5` | — | Exclui |
+| POST ⚙️ | `/api/produtos/lote` | `{ ids: [1, 2], acao: "excluir" \| "esconder" \| "mostrar" }` | Vários produtos de uma vez |
 | POST 🔓 | `/api/carrinho` | `{ itens: [{ produtoId, qtd }] }` | Calcula subtotal, desconto do Clube, frete e total |
 | GET 👤 | `/api/pedidos` | — | Meus pedidos (o admin vê todos) |
 | POST 👤 | `/api/pedidos` | `{ itens: [{ produtoId, qtd }], pagamento: "Pix", endereco: { rua, numero, bairro, cidade, cep } }` | Fecha a compra e baixa o estoque |
-| PATCH 👤 | `/api/pedidos/1001` | `{ status }` | Admin: muda o status (Recebido, Em separação, Enviado, Entregue, Cancelado). Cliente: só `Cancelado`, no próprio pedido e enquanto está `Recebido`. Cancelar devolve o estoque |
+| PATCH 👤 | `/api/pedidos/1001` | `{ status }` · admin também `{ arquivado, observacao }` | Admin: muda o status (Recebido, Em separação, Enviado, Entregue, Cancelado), arquiva (só entregues/cancelados) e anota. Cliente: só `Cancelado`, no próprio pedido e enquanto está `Recebido`. Cancelar devolve o estoque |
+| DELETE ⚙️ | `/api/pedidos/1001` | — | Apaga de vez (só arquivados) |
 
 ## Clube AgroPet
 
@@ -63,8 +65,9 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 | POST 👤 | `/api/pets` | `{ nome, tipo, porte, raca?, sexo?, nascimento? }` | Cadastra pet |
 | PUT / DELETE 👤 | `/api/pets/3` | (PUT) mesmos campos | Edita / exclui pet |
 | GET 👤 | `/api/agendamentos` | — | Meus agendamentos (o admin vê todos) |
-| POST 👤 | `/api/agendamentos` | `{ petId, servicoId: "banho", adicionais: ["unhas"], data, hora }` | Agenda. O banho grátis do Premium entra sozinho |
-| PATCH 👤 | `/api/agendamentos/7` | `{ status }` | Cliente: só `Cancelado`, antes do horário. Admin: Agendado, Concluído, Cancelado. Cancelar libera o horário; reativar dá 409 se ele já foi ocupado |
+| POST 👤 | `/api/agendamentos` | `{ petId, servicoId: "banho", adicionais: ["unhas"], data, hora }` | Agenda. O banho grátis do Premium entra sozinho. O admin agenda para qualquer pet (o dono do pet vira o cliente) |
+| PATCH 👤 | `/api/agendamentos/7` | `{ status }` · admin também `{ data, hora, servicoId, adicionais, arquivado }` | Cliente: só `Cancelado`, antes do horário. Admin: muda status, remarca, troca serviço (recalcula o valor) e arquiva. Horário ocupado dá 409 |
+| DELETE ⚙️ | `/api/agendamentos/7` | — | Apaga de vez (só arquivados) |
 
 ## Gerenciamento (admin)
 
@@ -73,7 +76,12 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 | GET ⚙️ | `/api/admin/painel` | Faturamento, pedidos, próximos banhos, estoque baixo, últimos pedidos |
 | GET ⚙️ | `/api/admin/clientes` | Clientes com total gasto e plano |
 | GET ⚙️ | `/api/admin/assinaturas` | Todas as assinaturas |
-| PATCH ⚙️ | `/api/admin/assinaturas` | `{ clienteId, ativa: false }` cancela a de um cliente |
+| PATCH ⚙️ | `/api/admin/assinaturas` | `{ clienteId, ativa: false }` cancela · `{ clienteId, arquivada: true }` arquiva (só canceladas) |
+| DELETE ⚙️ | `/api/admin/assinaturas?clienteId=3` | Apaga de vez (só arquivadas) |
+| GET ⚙️ | `/api/admin/clientes/3` | Ficha: dados, observações, pets, pedidos, agendamentos, assinatura |
+| PUT ⚙️ | `/api/admin/clientes/3` | `{ nome, email, telefone, observacoes }` |
+| DELETE ⚙️ | `/api/admin/clientes/3` | Apaga o cliente com pets, pedidos, agendamentos e assinatura |
+| POST ⚙️ | `/api/admin/limpar` | `{ confirmar: "LIMPAR" }` apaga clientes, pets, pedidos, agendamentos e assinaturas. Mantém catálogo, configurações e admin |
 | PUT ⚙️ | `/api/config` | `{ pilula, titulo, texto, botao, frete, freteGratisAcima, imgSlides: ["", "", ""] }` |
 
 ## Onde fica cada coisa

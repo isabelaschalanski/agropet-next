@@ -1,5 +1,6 @@
 // GET  /api/agendamentos  → meus agendamentos (o admin vê todos)
 // POST /api/agendamentos  { petId, servicoId, adicionais: ["unhas"], data: "2026-11-20", hora: "08:00" }
+//   o admin também agenda: o pet escolhido define o cliente
 import { prisma } from '../../../lib/db';
 import { rota, lerCorpo, exigir, ErroHttp } from '../../../lib/api';
 import { exigirLogin } from '../../../lib/auth';
@@ -17,11 +18,12 @@ export const GET = rota(async (req) => {
 });
 
 export const POST = rota(async (req) => {
-    const u = await exigirLogin(req);
-    exigir(!u.admin, 'O admin não faz agendamentos');
+    const quem = await exigirLogin(req);
     const b = await lerCorpo(req);
     const pet = await prisma.pet.findUnique({ where: { id: Number(b.petId) } });
-    exigir(pet && pet.donoId === u.id, 'Escolha um dos seus pets');
+    exigir(pet && (quem.admin || pet.donoId === quem.id), quem.admin ? 'Escolha um pet' : 'Escolha um dos seus pets');
+    // dono do pet (com a assinatura, para saber se tem banho grátis)
+    const u = await prisma.usuario.findUnique({ where: { id: pet.donoId }, include: { assinatura: true } });
     exigir(TIPOS_BANHO.includes(pet.tipo), 'Banho e Tosa é só para cães e gatos');
     const servico = await prisma.servico.findUnique({ where: { id: String(b.servicoId) } });
     exigir(servico, 'Serviço inválido');
