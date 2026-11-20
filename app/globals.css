@@ -240,7 +240,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--azul); backgroun
 .item { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--cinza-p); }
 .item:last-child { border-bottom: none; }
 .item-img { width: 70px; height: 70px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex-shrink: 0; }
-.item-info { flex: 1; }
+.item-info { flex: 1; min-width: 0; }
+.item-total { min-width: 96px; text-align: right; }
 .item-info strong { display: block; }
 .item-info small { color: var(--suave); }
 .qtd { display: flex; align-items: center; border: 1.5px solid var(--borda); border-radius: 10px; overflow: hidden; }
@@ -668,4 +669,82 @@ label.fop small { margin-left: auto; color: var(--suave); }
     .bt-hero .slide-img { display: none; }
     .vantagens, .cards-serv { grid-template-columns: 1fr; }
     .extras-lista { grid-template-columns: 1fr 1fr; }
+}
+
+
+/* ===== Celular e tablet =====
+   Ajustes para telas pequenas. Ficam no fim do arquivo para valer por cima das regras de cima. */
+
+/* Colunas de grade podem encolher (sem isso, uma tabela ou texto comprido empurra a página para o lado) */
+.duas > *, .area > *, .loja-layout > *, .adm > *, .form-linha > * { min-width: 0; }
+.duas.iguais { grid-template-columns: 1fr 1fr; }
+img, video { max-width: 100%; }
+
+@media (max-width: 1000px) {
+    /* a busca vai para uma linha só dela, embaixo do logo */
+    .topo-linha { flex-wrap: wrap; row-gap: 10px; }
+    .busca { display: flex; order: 3; flex: 1 1 100%; max-width: none; }
+    .duas, .area, .duas.iguais { grid-template-columns: minmax(0, 1fr); }
+    .barra .categorias { overflow-x: auto; scrollbar-width: none; }
+    .barra .categorias::-webkit-scrollbar { display: none; }
+}
+
+@media (max-width: 720px) {
+    .topo-linha { padding: 10px 0; }
+    .busca input { padding: 9px 0; font-size: 16px; } /* 16px evita o zoom automático do iPhone ao tocar */
+    input, select, textarea { font-size: 16px; }
+    .barra .categorias { overflow-x: visible; }
+    .container { width: 94%; }
+    .caixa { padding: 18px 16px; }
+
+    /* produtos em 2 colunas, cards mais compactos */
+    .grade, .loja-layout .grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card-img { height: 118px; font-size: 3rem; }
+    .card-info { padding: 11px; gap: 4px; }
+    .card h3 { font-size: .9rem; line-height: 1.3; }
+    .tag { font-size: .68rem; }
+    .preco { font-size: 1.12rem; }
+    .preco-clube { font-size: .76rem; }
+    .card .btn { padding: 9px 8px; font-size: .84rem; white-space: normal; line-height: 1.2; }
+    .selo { top: 8px; left: 8px; font-size: .68rem; padding: 2px 7px; }
+    .selo.alerta { right: 8px; }
+    .card:hover { transform: none; }
+
+    /* carrinho: foto, nome e lixeira em cima; quantidade e total embaixo */
+    .item { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; grid-template-areas: "img info rem" "img qtd tot"; gap: 8px 12px; align-items: center; }
+    .item-img { grid-area: img; width: 56px; height: 56px; font-size: 1.8rem; align-self: start; }
+    .item-info { grid-area: info; }
+    .item-info strong { font-size: .95rem; line-height: 1.3; }
+    .item-info small { font-size: .8rem; }
+    .item .qtd { grid-area: qtd; justify-self: start; }
+    .item-total { grid-area: tot; min-width: 0; }
+    .item .remover { grid-area: rem; align-self: start; }
+
+    /* tabelas: rolam de lado dentro da caixa, em vez de esticar a página */
+    .tabela-wrap { margin: 0 -4px; -webkit-overflow-scrolling: touch; }
+    table { font-size: .88rem; }
+    .tabela-wrap table { min-width: 540px; } /* a tabela rola de lado em vez de espremer as colunas */
+    th, td { padding: 8px 8px; }
+
+    /* janelas e avisos ocupam a largura da tela */
+    .fundo-modal { padding: 10px; align-items: flex-end; }
+    .modal { padding: 20px 16px; border-radius: 20px 20px 14px 14px; max-height: 94vh; }
+    .modal-acoes { flex-wrap: wrap; }
+    .modal-acoes .btn { flex: 1; }
+    .aviso { left: 12px; right: 12px; bottom: 14px; max-width: none; text-align: center; }
+
+    /* gerenciamento */
+    .adm-topo { flex-wrap: wrap; gap: 10px; }
+    .adm-topo h1 { font-size: 1.25rem; }
+    .adm-user .btn { margin-left: 0; }
+    .adm-conteudo .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stats { grid-template-columns: minmax(0, 1fr); }
+    .linha-img { flex-wrap: wrap; }
+    .linha-img .txt { min-width: 0; }
+    .linha-img .acoes { width: 100%; justify-content: flex-start; }
+}
+
+@media (max-width: 380px) {
+    .logo { font-size: 1.6rem; }
+    .adm-conteudo .stats { grid-template-columns: minmax(0, 1fr); }
 }

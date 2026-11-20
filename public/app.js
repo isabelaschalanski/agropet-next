@@ -692,7 +692,7 @@ function telaCarrinho() {
                         <span>${i.qtd}</span>
                         <button data-acao="qtd" data-id="${i.id}" data-delta="1">+</button>
                     </div>
-                    <strong style="min-width:96px;text-align:right">${dinheiro(i.p.preco * i.qtd)}</strong>
+                    <strong class="item-total">${dinheiro(i.p.preco * i.qtd)}</strong>
                     <button class="remover" data-acao="remover" data-id="${i.id}" title="Remover">🗑️</button>
                 </div>`).join('')}
             </div>
@@ -1149,7 +1149,7 @@ function telaEntrar() {
                 <label>Senha<input name="senha" type="password" required autocomplete="current-password"></label>
                 <p class="erro" id="erroEntrar"></p>
                 <button class="btn btn-azul btn-bloco">Entrar</button>
-                <p class="nota" style="font-size:.85rem">Demonstração — cliente: <b>maria@email.com</b> / <b>123</b> · gerenciamento: <b>admin</b> / <b>123</b></p>
+                <p class="nota" style="font-size:.85rem">Demonstração — cliente: <b>maria@email.com</b> / <b>123</b></p>
             </form>` : `
             <form class="form" id="formCadastro">
                 <label>Nome completo<input name="nome" required></label>
@@ -1353,7 +1353,7 @@ function adminPainel() {
         <div class="stat"><span class="ic">🛁</span><small>Agendamentos futuros</small><strong>${proximos.length}</strong></div>
         <div class="stat"><span class="ic">⭐</span><small>Assinantes · ${dinheiro(mensal)}/mês</small><strong>${assinantes.length}</strong></div>
     </div>
-    <div class="duas" style="grid-template-columns:1fr 1fr">
+    <div class="duas iguais">
         <div class="caixa"><h2>Próximos banhos</h2>${proximos.length ? `<div class="tabela-wrap"><table>
             ${proximos.slice(0, 6).map(a => `<tr><td>${dataBR(a.data)} ${a.hora}</td><td>${esc(a.pet)}</td><td>${servicoPor(a.servico).nome}</td></tr>`).join('')}
         </table></div>` : '<p class="vazio">Nenhum agendamento.</p>'}</div>
