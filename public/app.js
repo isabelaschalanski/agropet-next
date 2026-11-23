@@ -2208,6 +2208,58 @@ document.addEventListener('mousemove', (e) => {
     tip.style.left = x + 'px'; tip.style.top = (e.clientY - tip.offsetHeight - 12) + 'px';
 });
 
+/* ---------- formulário de produto (novo / editar) ---------- */
+function formProduto(p) {
+    const novo = !p;
+    p = p || { nome: '', animal: 'caes', categoria: 'Ração', preco: '', estoque: '', icone: '🐾', cor: 'amarelo', selo: '', descricao: '', imagem: '', ativo: true };
+    const grupos = animalPor(p.animal).grupos;
+    abrirModal(`
+        <div class="modal-topo"><h2>${novo ? 'Novo produto' : 'Editar produto'}</h2><button class="fechar" data-acao="fechar-modal">✕</button></div>
+        <form class="form" id="formProduto" data-id="${novo ? '' : p.id}">
+            <span style="font-weight:500">Foto do produto</span>
+            <div class="foto-campo">
+                <div class="foto-prev cor-${p.cor}" id="fotoPrev">${imgProduto(p)}</div>
+                <div class="botoes">
+                    <label class="btn btn-borda btn-peq">📷 ${p.imagem ? 'Trocar foto' : 'Escolher foto'}<input type="file" accept="image/*" id="inputFoto" hidden></label>
+                    <button type="button" class="btn btn-perigo btn-peq" data-acao="remover-foto" id="btnRemoverFoto" style="${p.imagem ? '' : 'display:none'}">Remover foto</button>
+                    <small>JPG ou PNG. Sem foto, aparece o emoji.</small>
+                </div>
+            </div>
+            <input type="hidden" name="imagem" id="campoImagem" value="${esc(p.imagem || '')}">
+            <label>Nome<input name="nome" value="${esc(p.nome)}" required></label>
+            <div class="form-linha">
+                <label>Animal<select name="animal" id="selAnimal">${ANIMAIS.map(a => `<option value="${a.id}" ${a.id === p.animal ? 'selected' : ''}>${a.icone} ${a.nome}</option>`).join('')}</select></label>
+                <label>Categoria<select name="categoria" id="selCategoria">${grupos.map(g => `<option ${g.t === p.categoria ? 'selected' : ''}>${esc(g.t)}</option>`).join('')}</select></label>
+            </div>
+            <div class="form-linha">
+                <label>Preço (R$)<input name="preco" type="number" step="0.01" min="0" value="${p.preco}" required></label>
+                <label>Estoque<input name="estoque" type="number" min="0" step="1" value="${p.estoque}" required></label>
+            </div>
+            <div class="form-linha">
+                <label>Ícone (emoji)<input name="icone" value="${esc(p.icone)}" maxlength="4" required></label>
+                <label>Cor do fundo<select name="cor">${CORES.map(c => `<option ${c === p.cor ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+            </div>
+            <label>Selo <small style="color:var(--suave);font-weight:400">(opcional — ex.: Oferta, Novo)</small><input name="selo" value="${esc(p.selo)}"></label>
+            <label>Descrição<textarea name="descricao" rows="2">${esc(p.descricao)}</textarea></label>
+            <div class="modal-acoes">
+                <button type="button" class="btn btn-borda" data-acao="fechar-modal">Cancelar</button>
+                <button class="btn btn-azul">${novo ? 'Cadastrar produto' : 'Salvar alterações'}</button>
+            </div>
+        </form>`);
+}
+
+async function salvarProduto(f) {
+    const d = Object.fromEntries(new FormData(f));
+    const dados = { nome: d.nome.trim(), animal: d.animal, categoria: d.categoria, preco: parseFloat(d.preco), estoque: parseInt(d.estoque, 10), icone: d.icone.trim(), cor: d.cor, selo: d.selo.trim(), descricao: d.descricao.trim(), imagem: d.imagem || '' };
+    try {
+        if (f.dataset.id) await api('PUT', '/produtos/' + f.dataset.id, dados);
+        else await api('POST', '/produtos', dados);
+        fecharModal();
+        await sincronizar();
+        aviso(f.dataset.id ? 'Produto atualizado ✓' : 'Produto cadastrado ✓');
+    } catch (e) { aviso('⚠️ ' + e.message); }
+}
+
 /* =========================================================
    MODAL
    ========================================================= */
