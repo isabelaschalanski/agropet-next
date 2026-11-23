@@ -88,7 +88,7 @@ A área de gerenciamento é restrita à equipe da loja.
  (telas)         (páginas + API)                        (produtos, pedidos, clientes...)
 ```
 
-- **Front-end:** as telas do site (`public/app.js` e `app/globals.css`)
+- **Front-end:** as telas do site, em React. Cada tela é um componente em `components/` e cada página tem seu próprio endereço em `app/` (ex.: `/clube`, `/loja/caes`, `/admin/pedidos`). Estilos em `app/globals.css`.
 - **Back-end:** a API em `app/api/`, com 21 rotas (produtos, pedidos, agendamentos, login…). As regras do negócio ficam em `lib/`.
 - **Banco:** 14 tabelas, definidas em `prisma/schema.prisma`
 

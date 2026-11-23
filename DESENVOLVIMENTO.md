@@ -92,24 +92,31 @@ Copia os produtos, as imagens e os textos do site que estão no banco para o `pr
 ```
 agropet-next/
 ├── app/
-│   ├── page.js          → página do site
-│   ├── layout.js        → estrutura geral (HTML)
+│   ├── layout.js        → estrutura geral (HTML) de todas as páginas
 │   ├── globals.css      → estilos
+│   ├── (loja)/          → páginas da loja: /, /loja/caes, /carrinho, /clube, /conta/pedidos...
+│   ├── admin/           → páginas do gerenciamento: /admin, /admin/produtos, /admin/pedidos...
 │   └── api/             → back-end (rotas da API)
-├── lib/                 → regras de negócio, login e banco
+├── components/
+│   ├── Provedor.js      → dados da loja, login e carrinho (usado por todas as telas)
+│   ├── loja/            → topo, rodapé, cartões de produto, imagens
+│   ├── telas/           → telas da loja (início, carrinho, banho e tosa, clube, conta...)
+│   └── admin/           → telas do gerenciamento (painel, produtos, pedidos...)
+├── lib/                 → regras de negócio, login e banco (lib/front: funções das telas)
 ├── prisma/
 │   ├── schema.prisma    → tabelas do banco
 │   ├── seed.mjs         → dados iniciais
 │   ├── exportar.mjs     → cópia de segurança do catálogo
 │   └── dados.json       → catálogo de produtos
 ├── public/
-│   ├── app.js           → funcionamento do site (front-end)
 │   ├── img/             → imagens dos banners
 │   └── teste-api.html   → página de testes da API
 └── API.md               → documentação das rotas da API
 ```
 
 Os testes da API ficam em **http://localhost:3000/teste-api.html** (com o site rodando).
+
+**Onde mexer:** para mudar uma tela, procure o componente em `components/` (ex.: o carrinho está em `components/telas/Carrinho.js`). As páginas em `app/` só dizem qual tela aparece em cada endereço. Preços, descontos, frete e horários ficam em `lib/regras.js`, que o site e a API usam juntos.
 
 ---
 
