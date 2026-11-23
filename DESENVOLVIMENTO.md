@@ -27,14 +27,18 @@ npm install
 
 **3. Crie o arquivo `.env`**
 
-Crie um arquivo chamado `.env` na pasta principal do projeto. Peça para quem cuida do Supabase as duas linhas com os endereços do banco. Elas são assim:
+Crie um arquivo chamado `.env` na pasta principal do projeto. Peça para quem cuida do Supabase as linhas do banco e do Storage (onde ficam as fotos). Elas são assim:
 
 ```
 DATABASE_URL="postgresql://postgres.xxxx:SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
 DIRECT_URL="postgresql://postgres.xxxx:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+SUPABASE_URL="https://xxxx.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="eyJ..."
 ```
 
-> 🔒 Esse arquivo tem a senha do banco. Mande para os colegas por mensagem privada, **nunca** pelo GitHub.
+Sem as duas últimas o site funciona, mas as fotos enviadas pelo painel vão como texto para dentro do banco em vez de irem para o Storage.
+
+> 🔒 Esse arquivo tem a senha do banco e a chave do Storage. Mande para os colegas por mensagem privada, **nunca** pelo GitHub.
 
 **4. Prepare o Prisma**
 
@@ -66,6 +70,25 @@ node prisma/seed.mjs      # coloca os produtos, usuários e pedidos de exemplo
 > ⚠️ O `seed.mjs` **apaga o banco inteiro**, para todo mundo, inclusive o site publicado. Só rode se quiserem voltar tudo ao começo, e combine com a equipe antes.
 
 Se alguém mudar o `prisma/schema.prisma` (tabelas), essa pessoa roda `npx prisma db push` uma vez, e pronto. Não precisa do seed.
+
+### Dados de exemplo (para mostrar o site em uso)
+
+```bash
+node prisma/popular.mjs           # adiciona 20 clientes, ~100 pedidos dos últimos 60 dias, agenda do Banho e Tosa e assinaturas
+node prisma/popular.mjs apagar    # tira só esses dados de exemplo
+```
+
+Não apaga nada do que já existe. Os clientes de exemplo têm e-mail `@exemplo.com`, senha `123` e telefones de mentira. Uma pessoa só roda, uma vez. As datas contam a partir do dia em que roda: para "atualizar" antes de uma apresentação, rode `apagar` e depois rode de novo.
+
+### Fotos (Supabase Storage)
+
+As fotos enviadas pelo painel do admin (produtos, banners e animais) ficam no **Storage** do Supabase, numa pasta pública chamada `imagens`. No banco fica só o link. Quem faz isso é o `lib/imagens.js`, e a pasta `imagens` é criada sozinha no primeiro envio. Quando uma foto é trocada ou o produto é excluído, a foto antiga é apagada do Storage.
+
+Para levar para o Storage as fotos que já estavam dentro do banco (rodar **uma vez**, uma pessoa só):
+
+```bash
+node prisma/mover-imagens.mjs
+```
 
 ### Cópia de segurança do catálogo
 
@@ -102,19 +125,19 @@ agropet-next/
 │   ├── loja/            → topo, rodapé, cartões de produto, imagens
 │   ├── telas/           → telas da loja (início, carrinho, banho e tosa, clube, conta...)
 │   └── admin/           → telas do gerenciamento (painel, produtos, pedidos...)
-├── lib/                 → regras de negócio, login e banco (lib/front: funções das telas)
+├── lib/                 → regras de negócio, login, banco e fotos (lib/front: funções das telas)
 ├── prisma/
 │   ├── schema.prisma    → tabelas do banco
 │   ├── seed.mjs         → dados iniciais
 │   ├── exportar.mjs     → cópia de segurança do catálogo
+│   ├── mover-imagens.mjs → leva para o Storage as fotos antigas que estavam no banco
+│   ├── popular.mjs      → coloca (ou tira) clientes e pedidos de exemplo
+│   ├── trocar-senha.mjs → troca a senha de uma conta (ex.: admin)
 │   └── dados.json       → catálogo de produtos
 ├── public/
-│   ├── img/             → imagens dos banners
-│   └── teste-api.html   → página de testes da API
+│   └── img/             → imagens dos banners
 └── API.md               → documentação das rotas da API
 ```
-
-Os testes da API ficam em **http://localhost:3000/teste-api.html** (com o site rodando).
 
 **Onde mexer:** para mudar uma tela, procure o componente em `components/` (ex.: o carrinho está em `components/telas/Carrinho.js`). As páginas em `app/` só dizem qual tela aparece em cada endereço. Preços, descontos, frete e horários ficam em `lib/regras.js`, que o site e a API usam juntos.
 
@@ -146,7 +169,7 @@ git push
 
 O site fica na Vercel, ligado a este repositório. **Todo `git push` na branch `main` publica a versão nova sozinho**, em 1 a 2 minutos. Antes de enviar, rode `npm run build`. Se der erro aqui, também dá na Vercel.
 
-As variáveis `DATABASE_URL` e `DIRECT_URL` também estão cadastradas na Vercel, em **Settings → Environments → Production**. Se elas mudarem (por exemplo, se trocar a senha do banco), atualize lá e publique de novo:
+As variáveis `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` também estão cadastradas na Vercel, em **Settings → Environments → Production**. Se elas mudarem (por exemplo, se trocar a senha do banco), atualize lá e publique de novo:
 
 ```bash
 git commit --allow-empty -m "publicar de novo"

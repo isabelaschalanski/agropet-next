@@ -5,6 +5,7 @@ import { rota, lerCorpo } from '../../../lib/api';
 import { usuarioDaRequisicao, exigirAdmin } from '../../../lib/auth';
 import { produtoParaFront } from '../../../lib/formatos';
 import { dadosDoProduto } from './validar';
+import { semAcento } from '../../../lib/front/util';
 
 export const GET = rota(async (req) => {
     const q = new URL(req.url).searchParams;
@@ -19,11 +20,14 @@ export const GET = rota(async (req) => {
     else if (animal === 'outros-pets') where.animal = { outro: true };
     else if (animal) where.animalId = animal;
     if (categoria) where.categoria = { nome: categoria };
-    // mode 'insensitive' = não diferencia maiúscula de minúscula (no PostgreSQL precisa avisar)
-    const tem = { contains: busca, mode: 'insensitive' };
-    if (busca) where.OR = [{ nome: tem }, { categoria: { nome: tem } }, { animal: { nome: tem } }];
-
     let produtos = await prisma.produto.findMany({ where, include: { animal: true, categoria: true }, orderBy: { id: 'asc' } });
+
+    // Busca sem diferenciar acento nem maiúscula ("racao" acha "Ração"). O catálogo é pequeno,
+    // então dá para filtrar aqui mesmo, depois de buscar no banco.
+    if (busca) {
+        const termo = semAcento(busca);
+        produtos = produtos.filter(p => [p.nome, p.categoria.nome, p.animal.nome].some(t => semAcento(t).includes(termo)));
+    }
 
     if (q.get('destaques')) {                                // com selo + o primeiro de cada animal
         const lista = produtos.filter(p => p.selo);

@@ -34,7 +34,7 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 |---|---|---|---|
 | GET 🔓 | `/api/animais` | — | Animais e categorias (monta o menu) |
 | PUT ⚙️ | `/api/animais` | `{ id, imagem }` | Troca a imagem de um animal |
-| GET 🔓 | `/api/produtos` | `?animal=gatos` `?animal=agro` `?animal=outros-pets` `?categoria=Ração` `?busca=sal` `?destaques=1` `?todos=1` (admin, inclui escondidos) | Lista produtos |
+| GET 🔓 | `/api/produtos` | `?animal=gatos` `?animal=agro` `?animal=outros-pets` `?categoria=Ração` `?busca=racao` (não diferencia acento nem maiúscula) `?destaques=1` `?todos=1` (admin, inclui escondidos) | Lista produtos |
 | GET 🔓 | `/api/produtos/5` | — | Um produto |
 | POST ⚙️ | `/api/produtos` | `{ nome, preco, estoque, animal, categoria, icone, cor, selo, descricao, imagem }` | Cadastra |
 | PUT ⚙️ | `/api/produtos/5` | só os campos que mudaram (ex.: `{ ativo: false }`) | Edita |
@@ -45,6 +45,8 @@ Legenda: 🔓 = aberta · 👤 = precisa de login · ⚙️ = só admin
 | POST 👤 | `/api/pedidos` | `{ itens: [{ produtoId, qtd }], pagamento: "Pix", endereco: { rua, numero, bairro, cidade, cep } }` | Fecha a compra e baixa o estoque |
 | PATCH 👤 | `/api/pedidos/1001` | `{ status }` · admin também `{ arquivado, observacao }` | Admin: muda o status (Recebido, Em separação, Enviado, Entregue, Cancelado), arquiva (só entregues/cancelados) e anota. Cliente: só `Cancelado`, no próprio pedido e enquanto está `Recebido`. Cancelar devolve o estoque |
 | DELETE ⚙️ | `/api/pedidos/1001` | — | Apaga de vez (só arquivados) |
+
+**Imagens:** nos campos `imagem` (produtos e animais) e `imgSlides` (config) dá para mandar a foto como texto (`data:image/jpeg;base64,...`). O servidor envia a foto para o Supabase Storage e guarda no banco só o link (veja `lib/imagens.js`). Mandar um link deixa como está; mandar `""` remove a foto.
 
 ## Clube AgroPet
 
