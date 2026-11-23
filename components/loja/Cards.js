@@ -5,31 +5,31 @@ import { dinheiro } from '../../lib/front/util';
 import { ImgProduto } from './Imagens';
 
 export function CardProduto({ p }) {
-    const { plano, animalPor, adicionar } = useLoja();
+    const { plano, planos, animalPor, adicionar } = useLoja();
     const esgotado = p.estoque <= 0;
+    // preço de assinante: o do plano da pessoa, ou o melhor desconto do Clube para quem ainda não assina
+    const desconto = plano ? plano.desconto : Math.max(...Object.values(planos).map(pl => pl.desconto));
     return (
         <article className="card">
             <div className={`card-img cor-${p.cor}`}>
                 {p.selo && <span className="selo">{p.selo}</span>}
                 {esgotado ? <span className="selo alerta">Esgotado</span> : p.estoque <= 5 && <span className="selo alerta">Últimas {p.estoque}</span>}
                 <ImgProduto p={p} />
+                <button className="mais" onClick={() => adicionar(p.id)} title={esgotado ? 'Esgotado' : 'Adicionar ao carrinho'} aria-label="Adicionar ao carrinho" disabled={esgotado}>+</button>
             </div>
             <div className="card-info">
                 <span className="tag">{animalPor(p.animal).nome} · {p.categoria}</span>
                 <h3>{p.nome}</h3>
                 <span className="preco">{dinheiro(p.preco)}</span>
-                {plano && <span className="preco-clube">{dinheiro(p.preco * (1 - plano.desconto / 100))} no Clube {plano.nome}</span>}
-                <button className="btn btn-azul btn-bloco" onClick={() => adicionar(p.id)} disabled={esgotado}>
-                    {esgotado ? 'Esgotado' : 'Adicionar ao carrinho'}
-                </button>
+                <span className="preco-clube">{dinheiro(p.preco * (1 - desconto / 100))} {plano ? `no seu Clube ${plano.nome}` : 'para assinantes ⭐'}</span>
             </div>
         </article>
     );
 }
 
 export function CardMini({ p }) {
-    const { adicionar, planos } = useLoja();
-    const melhor = Math.max(...Object.values(planos).map(pl => pl.desconto));
+    const { adicionar, planos, plano } = useLoja();
+    const desconto = plano ? plano.desconto : Math.max(...Object.values(planos).map(pl => pl.desconto));
     return (
         <article className="mini">
             <div className={`mini-img cor-${p.cor}`}>
@@ -40,7 +40,7 @@ export function CardMini({ p }) {
             <div className="mini-info">
                 <h3>{p.nome}</h3>
                 <span className="preco">{dinheiro(p.preco)}</span>
-                <span className="assin">{dinheiro(p.preco * (1 - melhor / 100))}<small>para assinantes ⭐</small></span>
+                <span className="assin">{dinheiro(p.preco * (1 - desconto / 100))}<small>{plano ? `no seu Clube ${plano.nome}` : 'para assinantes ⭐'}</small></span>
             </div>
         </article>
     );

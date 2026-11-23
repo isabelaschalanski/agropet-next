@@ -214,7 +214,7 @@ export default function Provedor({ children }) {
                 <p>{erro}. Confira se o &quot;npm run dev&quot; está rodando e se o arquivo .env tem o endereço do banco.</p></div>
         );
     } else if (!pronto) {
-        conteudo = <div className="container sucesso"><div className="grande">🐾</div><p>Carregando...</p></div>;
+        conteudo = <div className="carregando"><div className="grande">🐾</div><p>Carregando...</p></div>;
     }
 
     return (
